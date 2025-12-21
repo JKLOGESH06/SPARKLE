@@ -1,3 +1,19 @@
+/* Firebase Configuration - Replace with your actual config from Firebase Console! */
+const firebaseConfig = {
+    apiKey: "AIzaSyBxzAQtK6Wx9SX_-gPPjmEBCYDKstAJksk",
+    authDomain: "sparkle-simulation.firebaseapp.com",
+    projectId: "sparkle-simulation",
+    storageBucket: "sparkle-simulation.firebasestorage.app",
+    messagingSenderId: "204976496972",
+    appId: "1:204976496972:web:b3233c5703747b620e6fe9",
+    measurementId: "G-LNPXLZ3H0C"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
 /* ... data model ... */
 const componentsDB = [
     // Basics
@@ -285,8 +301,8 @@ if (redoBtn) {
 // Auth Logic
 const loginError = document.getElementById('login-error');
 
-function updateAuthState(loggedIn) {
-    if (loggedIn) {
+function updateAuthState(loggedIn, user = null) {
+    if (loggedIn && user) {
         authBtn.textContent = 'Logout';
         loginScreen.classList.remove('active');
         loginScreen.classList.add('hidden');
@@ -294,6 +310,7 @@ function updateAuthState(loggedIn) {
         setTimeout(() => dashboardScreen.classList.add('active'), 50);
         loginError.classList.add('hidden');
         loginError.textContent = '';
+        console.log("Logged in as:", user.email);
     } else {
         authBtn.textContent = 'Login';
         dashboardScreen.classList.remove('active');
@@ -301,17 +318,22 @@ function updateAuthState(loggedIn) {
         loginScreen.classList.remove('hidden');
         setTimeout(() => loginScreen.classList.add('active'), 50);
 
-        // Reset Simulation
         isRunning = false;
-        runBtn.classList.remove('hidden');
-        stopBtn.classList.add('hidden');
+        if (runBtn) runBtn.classList.remove('hidden');
+        if (stopBtn) stopBtn.classList.add('hidden');
     }
 }
+
+// Observer for Auth State
+auth.onAuthStateChanged((user) => {
+    updateAuthState(!!user, user);
+});
+
 
 if (authBtn) {
     authBtn.addEventListener('click', () => {
         if (authBtn.textContent === 'Logout') {
-            updateAuthState(false);
+            auth.signOut();
         } else {
             document.getElementById('username').focus();
         }
@@ -322,37 +344,46 @@ if (authBtn) {
 if (loginForm) {
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const usernameInput = document.getElementById('username').value;
-        const passwordInput = document.getElementById('password').value;
+        const email = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
         const btn = loginForm.querySelector('button');
 
-        const storedCreds = localStorage.getItem('sparkle_creds');
+        btn.innerHTML = 'Processing...';
 
-        if (!storedCreds) {
-            const creds = { user: usernameInput, pass: passwordInput };
-            localStorage.setItem('sparkle_creds', JSON.stringify(creds));
-            btn.innerHTML = 'Registering...';
-            setTimeout(() => {
-                updateAuthState(true);
+        // Attempt Sign In
+        auth.signInWithEmailAndPassword(email, password)
+            .then(() => {
                 btn.innerHTML = 'Initialize System <i class="fa-solid fa-arrow-right"></i>';
-            }, 1000);
-        } else {
-            const creds = JSON.parse(storedCreds);
-            if (usernameInput === creds.user && passwordInput === creds.pass) {
-                btn.innerHTML = 'Verifying...';
-                setTimeout(() => {
-                    updateAuthState(true);
+            })
+            .catch((error) => {
+                if (error.code === 'auth/user-not-found') {
+                    // Auto-Register if user doesn't exist (Simple Flow)
+                    btn.innerHTML = 'Registering...';
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .then((userCredential) => {
+                            // Save user to Firestore for registry
+                            db.collection("users").doc(userCredential.user.uid).set({
+                                email: email,
+                                registeredAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                            btn.innerHTML = 'Initialize System <i class="fa-solid fa-arrow-right"></i>';
+                        })
+                        .catch(err => {
+                            loginError.textContent = err.message;
+                            loginError.classList.remove('hidden');
+                            btn.innerHTML = 'Initialize System <i class="fa-solid fa-arrow-right"></i>';
+                        });
+                } else {
+                    loginError.textContent = error.message;
+                    loginError.classList.remove('hidden');
                     btn.innerHTML = 'Initialize System <i class="fa-solid fa-arrow-right"></i>';
-                }, 800);
-            } else {
-                loginError.textContent = 'Invalid Credentials / Wrong Password';
-                loginError.classList.remove('hidden');
-                const panel = document.querySelector('.login-panel');
-                panel.classList.remove('shake');
-                void panel.offsetWidth;
-                panel.classList.add('shake');
-            }
-        }
+
+                    const panel = document.querySelector('.login-panel');
+                    panel.classList.remove('shake');
+                    void panel.offsetWidth;
+                    panel.classList.add('shake');
+                }
+            });
     });
 }
 
@@ -365,23 +396,24 @@ if (settingsBtn) {
 
 if (exportExcelBtn) {
     exportExcelBtn.addEventListener('click', () => {
-        const storedCreds = localStorage.getItem('sparkle_creds');
-        if (!storedCreds) {
-            showToast("No credentials found to export!");
-            return;
-        }
+        showToast("Fetching user registry...", "info");
 
-        const creds = JSON.parse(storedCreds);
-        const data = [
-            ["System", "Username/Email", "Password", "Export Date"],
-            ["SPARKLE", creds.user, creds.pass, new Date().toLocaleString()]
-        ];
+        db.collection("users").get().then((querySnapshot) => {
+            const data = [["Email", "Registered At"]];
+            querySnapshot.forEach((doc) => {
+                const user = doc.data();
+                data.push([user.email, user.registeredAt?.toDate().toLocaleString() || "N/A"]);
+            });
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Users");
-        XLSX.writeFile(wb, "sparkle_user_registry.xlsx");
-        showToast("Registry exported successfully!", "success");
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Users");
+            XLSX.writeFile(wb, "sparkle_user_registry.xlsx");
+            showToast("Registry exported successfully!", "success");
+        }).catch(err => {
+            showToast("Failed to fetch registry.");
+            console.error(err);
+        });
     });
 }
 
