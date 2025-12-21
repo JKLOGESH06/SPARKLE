@@ -14,6 +14,8 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+let currentUser = null;
+
 /* ... data model ... */
 const componentsDB = [
     // Basics
@@ -210,7 +212,7 @@ let contextMenuTargetId = null;
 
 const paletteList = document.getElementById('palette-list');
 const circuitBoard = document.getElementById('circuit-board');
-const wiresLayer = document.getElementById('wires-layer');
+let wiresLayer = document.getElementById('wires-layer');
 const loginForm = document.getElementById('login-form');
 const runBtn = document.getElementById('run-btn');
 const stopBtn = document.getElementById('stop-btn');
@@ -226,6 +228,13 @@ const exportExcelBtn = document.getElementById('export-excel-btn');
 const undoBtn = document.getElementById('undo-btn');
 const redoBtn = document.getElementById('redo-btn');
 const downloadBtn = document.getElementById('download-btn');
+
+// Mode for Auth
+let isLoginMode = true;
+const authToggleBtn = document.getElementById('auth-toggle-btn');
+const authToggleWrapper = document.getElementById('auth-toggle-wrapper');
+const loginTitle = document.querySelector('.logo-area p');
+const submitBtn = document.getElementById('submit-btn');
 
 // History State
 const historyStack = [];
@@ -302,6 +311,7 @@ if (redoBtn) {
 const loginError = document.getElementById('login-error');
 
 function updateAuthState(loggedIn, user = null) {
+    currentUser = user;
     if (loggedIn && user) {
         authBtn.textContent = 'Logout';
         loginScreen.classList.remove('active');
@@ -329,6 +339,24 @@ auth.onAuthStateChanged((user) => {
     updateAuthState(!!user, user);
 });
 
+function toggleAuthMode() {
+    isLoginMode = !isLoginMode;
+    if (isLoginMode) {
+        loginTitle.textContent = "Advanced Component Simulation";
+        submitBtn.innerHTML = 'Initialize System <i class="fa-solid fa-arrow-right"></i>';
+        authToggleWrapper.innerHTML = `Don't have an account? <button id="auth-toggle-btn" class="btn-link" style="background:none; border:none; color:var(--primary); cursor:pointer; font-family:inherit; padding:0; text-decoration:underline;">Sign Up</button>`;
+    } else {
+        loginTitle.textContent = "Create New Account";
+        submitBtn.innerHTML = 'Create Account <i class="fa-solid fa-user-plus"></i>';
+        authToggleWrapper.innerHTML = `Already have an account? <button id="auth-toggle-btn" class="btn-link" style="background:none; border:none; color:var(--primary); cursor:pointer; font-family:inherit; padding:0; text-decoration:underline;">Login</button>`;
+    }
+    // Re-attach since innerHTML was used
+    document.getElementById('auth-toggle-btn').addEventListener('click', toggleAuthMode);
+}
+
+if (authToggleBtn) {
+    authToggleBtn.addEventListener('click', toggleAuthMode);
+}
 
 if (authBtn) {
     authBtn.addEventListener('click', () => {
@@ -346,45 +374,57 @@ if (loginForm) {
         e.preventDefault();
         const email = document.getElementById('username').value;
         const password = document.getElementById('password').value;
-        const btn = loginForm.querySelector('button');
+        const btn = submitBtn || loginForm.querySelector('button');
 
-        btn.innerHTML = 'Processing...';
+        btn.disabled = true;
+        btn.innerHTML = isLoginMode ? 'Verifying...' : 'Creating Account...';
+        loginError.classList.add('hidden');
 
-        // Attempt Sign In
-        auth.signInWithEmailAndPassword(email, password)
-            .then(() => {
-                btn.innerHTML = 'Initialize System <i class="fa-solid fa-arrow-right"></i>';
-            })
-            .catch((error) => {
-                if (error.code === 'auth/user-not-found') {
-                    // Auto-Register if user doesn't exist (Simple Flow)
-                    btn.innerHTML = 'Registering...';
-                    auth.createUserWithEmailAndPassword(email, password)
-                        .then((userCredential) => {
-                            // Save user to Firestore for registry
-                            db.collection("users").doc(userCredential.user.uid).set({
-                                email: email,
-                                registeredAt: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                            btn.innerHTML = 'Initialize System <i class="fa-solid fa-arrow-right"></i>';
-                        })
-                        .catch(err => {
-                            loginError.textContent = err.message;
-                            loginError.classList.remove('hidden');
-                            btn.innerHTML = 'Initialize System <i class="fa-solid fa-arrow-right"></i>';
-                        });
-                } else {
+        if (isLoginMode) {
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Initialize System <i class="fa-solid fa-arrow-right"></i>';
+                })
+                .catch((error) => {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Initialize System <i class="fa-solid fa-arrow-right"></i>';
                     loginError.textContent = error.message;
                     loginError.classList.remove('hidden');
-                    btn.innerHTML = 'Initialize System <i class="fa-solid fa-arrow-right"></i>';
-
-                    const panel = document.querySelector('.login-panel');
-                    panel.classList.remove('shake');
-                    void panel.offsetWidth;
-                    panel.classList.add('shake');
-                }
-            });
+                    shakePanel();
+                });
+        } else {
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    db.collection("users").doc(userCredential.user.uid).set({
+                        email: email,
+                        registeredAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    btn.disabled = false;
+                    btn.innerHTML = 'Account Created! Logging in...';
+                    setTimeout(() => {
+                        isLoginMode = true;
+                        toggleAuthMode(); // Switch UI back
+                    }, 1500);
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Create Account <i class="fa-solid fa-user-plus"></i>';
+                    loginError.textContent = err.message;
+                    loginError.classList.remove('hidden');
+                    shakePanel();
+                });
+        }
     });
+}
+
+function shakePanel() {
+    const panel = document.querySelector('.login-panel');
+    if (panel) {
+        panel.classList.remove('shake');
+        void panel.offsetWidth;
+        panel.classList.add('shake');
+    }
 }
 
 // Settings & Excel Export
@@ -456,6 +496,83 @@ if (downloadBtn) {
             console.error("Capture Failed:", err);
             showToast("Failed to generate image.");
         });
+    });
+}
+
+// Cloud Storage Logic
+function saveCircuitToCloud() {
+    if (!currentUser) {
+        showToast("Please login to save to cloud");
+        return;
+    }
+    if (circuitComponents.length === 0) {
+        showToast("Cannot save empty circuit");
+        return;
+    }
+
+    showToast("Saving to Cloud...", "info");
+
+    db.collection("circuits").doc(currentUser.uid).set({
+        components: circuitComponents,
+        wires: wires,
+        lastSaved: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        showToast("Circuit saved to Cloud!", "success");
+    }).catch(err => {
+        showToast("Cloud save failed");
+        console.error(err);
+    });
+}
+
+function loadCircuitFromCloud() {
+    if (!currentUser) {
+        showToast("Please login to load from cloud");
+        return;
+    }
+
+    if (circuitComponents.length > 0 && !confirm("This will clear your current workspace. Continue?")) {
+        return;
+    }
+
+    showToast("Loading from Cloud...", "info");
+
+    db.collection("circuits").doc(currentUser.uid).get().then((doc) => {
+        if (doc.exists) {
+            const data = doc.data();
+
+            // Clear current workspace
+            circuitComponents = [];
+            wires = [];
+
+            // Remove all component elements but keep wires-layer
+            const components = circuitBoard.querySelectorAll('.component');
+            components.forEach(c => c.remove());
+
+            // Clear wires-layer
+            if (wiresLayer) wiresLayer.innerHTML = '';
+
+            // Restore components
+            let maxIdNum = 0;
+            data.components.forEach(c => {
+                restoreComponent(c, []);
+                const idNum = parseInt(c.id.split('_')[1]);
+                if (!isNaN(idNum)) maxIdNum = Math.max(maxIdNum, idNum);
+            });
+
+            // Update nextId to prevent collisions
+            nextId = maxIdNum + 1;
+
+            // Restore wires
+            wires = data.wires || [];
+
+            showToast("Circuit loaded from Cloud!", "success");
+            drawWires();
+        } else {
+            showToast("No saved circuit found in Cloud");
+        }
+    }).catch(err => {
+        showToast("Cloud load failed");
+        console.error(err);
     });
 }
 const componentSearch = document.getElementById('component-search');
@@ -908,4 +1025,15 @@ if (componentSearch) {
     componentSearch.addEventListener('input', (e) => {
         renderPalette(e.target.value);
     });
+}
+
+const cloudSaveBtn = document.getElementById('cloud-save-btn');
+const cloudLoadBtn = document.getElementById('cloud-load-btn');
+
+if (cloudSaveBtn) {
+    cloudSaveBtn.addEventListener('click', saveCircuitToCloud);
+}
+
+if (cloudLoadBtn) {
+    cloudLoadBtn.addEventListener('click', loadCircuitFromCloud);
 }

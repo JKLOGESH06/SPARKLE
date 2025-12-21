@@ -46,11 +46,14 @@
 
                 <div id="login-error" class="login-error hidden"></div>
 
-                <button type="submit" class="btn-primary">Initialize System <i
+                <button type="submit" id="submit-btn" class="btn-primary">Initialize System <i
                         class="fa-solid fa-arrow-right"></i></button>
             </form>
 
             <div class="login-footer">
+                <p id="auth-toggle-wrapper">Don't have an account? <button id="auth-toggle-btn" class="btn-link"
+                        style="background:none; border:none; color:var(--primary); cursor:pointer; font-family:inherit; padding:0; text-decoration:underline;">Sign
+                        Up</button></p>
                 <button id="settings-btn" class="btn-text"><i class="fa-solid fa-gear"></i> System Settings</button>
             </div>
         </div>
@@ -74,9 +77,18 @@
                 <button id="stop-btn" class="toolbar-btn hidden"><i class="fa-solid fa-stop"></i> STOP</button>
             </div>
 
-            <!-- Download Button placed for positioning -->
-            <button id="download-btn" class="toolbar-btn download-btn-pos" title="Download Circuit">
-                <i class="fa-solid fa-download"></i> DOWNLOAD
+            <!-- Download Button -->
+            <button id="download-btn" class="toolbar-btn download-btn-pos" title="Download Image">
+                <i class="fa-solid fa-image"></i> DOWNLOAD
+            </button>
+
+            <!-- Cloud Buttons -->
+            <button id="cloud-save-btn" class="toolbar-btn cloud-btn" style="margin-left: 10px;" title="Save to Cloud">
+                <i class="fa-solid fa-cloud-arrow-up"></i> SAVE
+            </button>
+            <button id="cloud-load-btn" class="toolbar-btn cloud-btn" style="margin-left: 10px;"
+                title="Load from Cloud">
+                <i class="fa-solid fa-cloud-arrow-down"></i> LOAD
             </button>
         </nav>
 

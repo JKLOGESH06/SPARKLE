@@ -772,3 +772,17 @@ body {
 .comp-active-led .comp-svg path:last-child {
     filter: drop-shadow(0 0 2px #fff);
 }
+
+.cloud-btn {
+    border: 1px solid var(--glass-border) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-muted);
+}
+
+.cloud-btn:hover {
+    background: rgba(0, 255, 255, 0.1) !important;
+    border-color: rgba(0, 255, 255, 0.3) !important;
+    color: #00ffff !important;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    transform: translateY(-2px);
+}
