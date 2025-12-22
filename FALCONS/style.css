@@ -132,10 +132,6 @@ body {
 
 /* Auth Button */
 .auth-btn {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 5000;
     background: rgba(10, 10, 20, 0.8);
     border: 1px solid var(--primary);
     color: var(--primary);
@@ -146,8 +142,12 @@ body {
     transition: all 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     box-shadow: 0 0 10px rgba(0, 242, 234, 0.2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
 }
 
 .auth-btn:hover {
@@ -243,10 +243,16 @@ body {
     display: flex;
     gap: 10px;
     align-items: center;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    /* Center it */
+    flex: 1;
+    justify-content: center;
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    justify-content: flex-end;
 }
 
 .toolbar-btn {
@@ -280,13 +286,8 @@ body {
     color: #f00;
 }
 
-.download-btn-pos {
-    position: absolute;
-    right: 25%;
-    /* Positioned exactly in the middle of Center (Run) and Right Edge (Logout) */
-    background: rgba(0, 242, 234, 0.1);
-    border-color: rgba(0, 242, 234, 0.3);
-    color: var(--primary);
+.nav-brand {
+    flex: 1;
 }
 
 .separator {

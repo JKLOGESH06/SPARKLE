@@ -22,9 +22,6 @@
         <div class="globe g3"></div>
     </div>
 
-    <!-- GLOBAL AUTH BUTTON -->
-    <button id="auth-btn" class="auth-btn">Login</button>
-
     <!-- LOGIN SCREEN -->
     <section id="login-screen" class="screen active">
         <div class="glass-panel login-panel">
@@ -77,19 +74,22 @@
                 <button id="stop-btn" class="toolbar-btn hidden"><i class="fa-solid fa-stop"></i> STOP</button>
             </div>
 
-            <!-- Download Button -->
-            <button id="download-btn" class="toolbar-btn download-btn-pos" title="Download Image">
-                <i class="fa-solid fa-image"></i> DOWNLOAD
-            </button>
+            <div class="nav-actions">
+                <button id="download-btn" class="toolbar-btn" title="Download Image">
+                    <i class="fa-solid fa-image"></i> DOWNLOAD
+                </button>
 
-            <!-- Cloud Buttons -->
-            <button id="cloud-save-btn" class="toolbar-btn cloud-btn" style="margin-left: 10px;" title="Save to Cloud">
-                <i class="fa-solid fa-cloud-arrow-up"></i> SAVE
-            </button>
-            <button id="cloud-load-btn" class="toolbar-btn cloud-btn" style="margin-left: 10px;"
-                title="Load from Cloud">
-                <i class="fa-solid fa-cloud-arrow-down"></i> LOAD
-            </button>
+                <!-- Cloud Buttons -->
+                <button id="cloud-save-btn" class="toolbar-btn cloud-btn" title="Save to Cloud">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> SAVE
+                </button>
+                <button id="cloud-load-btn" class="toolbar-btn cloud-btn" title="Load from Cloud">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> LOAD
+                </button>
+
+                <div class="separator"></div>
+                <button id="auth-btn" class="auth-btn">Login</button>
+            </div>
         </nav>
 
         <div class="workspace-container">
