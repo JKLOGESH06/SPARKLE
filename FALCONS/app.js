@@ -829,18 +829,8 @@ function validateCircuit() {
     document.querySelectorAll('.circuit-component').forEach(el => el.classList.remove('connection-error'));
 
     circuitComponents.forEach(comp => {
-        // Check if this component has at least one wire connected to it
-        // A stricter check would be to check both nodes for 2-node components
         const hasLeftConnection = wires.some(w => (w.start.compId === comp.id && w.start.nodeId === 'L') || (w.end.compId === comp.id && w.end.nodeId === 'L'));
         const hasRightConnection = wires.some(w => (w.start.compId === comp.id && w.start.nodeId === 'R') || (w.end.compId === comp.id && w.end.nodeId === 'R'));
-
-        // For simplicity, let's require BOTH connections for normal components
-        // Ground might only need one? No, usually 1 node gnd.
-        // Let's assume standard 2-node components need both.
-        // Source components might allow 1? Ideally circuit is closed loop.
-
-        // Strict Rule: Both Left and Right nodes must be connected.
-        // Exceptions could be added based on comp.type
 
         if (!hasLeftConnection || !hasRightConnection) {
             isValid = false;
@@ -856,12 +846,107 @@ function validateCircuit() {
     return isValid;
 }
 
+function solveCircuit() {
+    if (!isRunning) return;
+
+    // 1. Identify Nets (Groups of connected nodes)
+    const nets = [];
+    const visitedNodes = new Set();
+
+    function getNet(compId, nodeId) {
+        const key = `${compId}-${nodeId}`;
+        if (visitedNodes.has(key)) return null;
+
+        const net = [];
+        const queue = [{ compId, nodeId }];
+        visitedNodes.add(key);
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            net.push(current);
+
+            // Find wires connected to this node
+            wires.forEach(w => {
+                let neighbor = null;
+                if (w.start.compId === current.compId && w.start.nodeId === current.nodeId) {
+                    neighbor = w.end;
+                } else if (w.end.compId === current.compId && w.end.nodeId === current.nodeId) {
+                    neighbor = w.start;
+                }
+
+                if (neighbor) {
+                    const nKey = `${neighbor.compId}-${neighbor.nodeId}`;
+                    if (!visitedNodes.has(nKey)) {
+                        visitedNodes.add(nKey);
+                        queue.push({ compId: neighbor.compId, nodeId: neighbor.nodeId });
+                    }
+                }
+            });
+        }
+        return net;
+    }
+
+    // Map all nodes to nets
+    circuitComponents.forEach(comp => {
+        ['L', 'R'].forEach(nodeId => {
+            const net = getNet(comp.id, nodeId);
+            if (net) nets.push(net);
+        });
+    });
+
+    // 2. Identify Voltages
+    // Net maps to a voltage value
+    const netVoltages = new Map();
+
+    nets.forEach((net, index) => {
+        let voltage = 0;
+        // Check if any node in this net is connected to a source's positive terminal
+        net.forEach(node => {
+            const comp = circuitComponents.find(c => c.id === node.compId);
+            if (comp.defId === 'bat' || comp.defId === 'ps' || comp.defId === 'cell') {
+                if (node.nodeId === 'R') { // Assume Right is positive for sources
+                    voltage = parseFloat(comp.value) || 0;
+                }
+            } else if (comp.defId === 'gnd') {
+                voltage = 0;
+            }
+        });
+        netVoltages.set(index, voltage);
+    });
+
+    // 3. Update Components
+    circuitComponents.forEach(comp => {
+        const el = document.getElementById(`comp-${comp.id}`);
+        if (!el) return;
+
+        if (comp.defId === 'v_meter') {
+            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
+            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
+            const vL = netVoltages.get(netLIdx) || 0;
+            const vR = netVoltages.get(netRIdx) || 0;
+            const diff = Math.abs(vR - vL);
+            el.querySelector('.val-badge').textContent = `${diff.toFixed(1)}V`;
+            if (diff > 0) el.classList.add('comp-active-v');
+            else el.classList.remove('comp-active-v');
+        }
+
+        if (comp.defId === 'led') {
+            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
+            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
+            const vL = netVoltages.get(netLIdx) || 0;
+            const vR = netVoltages.get(netRIdx) || 0;
+            if (Math.abs(vR - vL) >= 1.5) el.classList.add('comp-active-led');
+            else el.classList.remove('comp-active-led');
+        }
+    });
+}
+
 function openEditModal(compData) {
     editingComponentId = compData.id;
     editName.textContent = compData.name;
     editValue.value = compData.value;
     editUnit.textContent = compData.unit;
-    editValue.type = "text"; // Support strings like ratios or unit suffixes
+    editValue.type = "text";
     editModal.classList.remove('hidden');
 }
 
@@ -883,14 +968,7 @@ if (runBtn) {
             runBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
             drawWires();
-
-            circuitComponents.forEach(comp => {
-                if (comp.defId === 'led') {
-                    const el = document.getElementById(`comp-${comp.id}`);
-                    if (el) el.classList.add('comp-active-led');
-                }
-            });
-
+            solveCircuit();
             document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = '#00f2ea');
         }
     });
@@ -904,6 +982,16 @@ if (stopBtn) {
         drawWires();
 
         document.querySelectorAll('.comp-active-led').forEach(el => el.classList.remove('comp-active-led'));
+        document.querySelectorAll('.comp-active-v').forEach(el => el.classList.remove('comp-active-v'));
+
+        // Reset voltmeter display back to its static value/unit
+        circuitComponents.forEach(comp => {
+            if (comp.defId === 'v_meter') {
+                const el = document.getElementById(`comp-${comp.id}`);
+                if (el) el.querySelector('.val-badge').textContent = `0V`;
+            }
+        });
+
         document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = 'currentColor');
     });
 }
