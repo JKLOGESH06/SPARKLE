@@ -919,23 +919,34 @@ function solveCircuit() {
         const el = document.getElementById(`comp-${comp.id}`);
         if (!el) return;
 
+        const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
+        const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
+        const vL = netVoltages.get(netLIdx) || 0;
+        const vR = netVoltages.get(netRIdx) || 0;
+        const diff = Math.abs(vR - vL);
+
         if (comp.defId === 'v_meter') {
-            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
-            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
-            const vL = netVoltages.get(netLIdx) || 0;
-            const vR = netVoltages.get(netRIdx) || 0;
-            const diff = Math.abs(vR - vL);
             el.querySelector('.val-badge').textContent = `${diff.toFixed(1)}V`;
             if (diff > 0) el.classList.add('comp-active-v');
             else el.classList.remove('comp-active-v');
         }
 
+        if (comp.defId === 'a_meter') {
+            // Simple Ohm's Law for Current reading: I = V / R_path
+            // We assume a 100 Ohm internal resistance for the ammeter for calculation purposes
+            // Or better: just show V difference if user connected it across something.
+            // For a series ammeter, we need to know the circuit impedance. 
+            // Simplified: I = (V_source / (R_load + 0.1))
+            // Here we'll just show current proportional to voltage drop across the meter
+            // with a 1 Ohm shunt assumption for display.
+            const current = diff / 1.0;
+            el.querySelector('.val-badge').textContent = `${current.toFixed(2)}A`;
+            if (current > 0) el.classList.add('comp-active-a');
+            else el.classList.remove('comp-active-a');
+        }
+
         if (comp.defId === 'led') {
-            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
-            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
-            const vL = netVoltages.get(netLIdx) || 0;
-            const vR = netVoltages.get(netRIdx) || 0;
-            if (Math.abs(vR - vL) >= 1.5) el.classList.add('comp-active-led');
+            if (diff >= 1.5) el.classList.add('comp-active-led');
             else el.classList.remove('comp-active-led');
         }
     });
@@ -983,12 +994,12 @@ if (stopBtn) {
 
         document.querySelectorAll('.comp-active-led').forEach(el => el.classList.remove('comp-active-led'));
         document.querySelectorAll('.comp-active-v').forEach(el => el.classList.remove('comp-active-v'));
+        document.querySelectorAll('.comp-active-a').forEach(el => el.classList.remove('comp-active-a'));
 
-        // Reset voltmeter display back to its static value/unit
         circuitComponents.forEach(comp => {
-            if (comp.defId === 'v_meter') {
+            if (comp.defId === 'v_meter' || comp.defId === 'a_meter') {
                 const el = document.getElementById(`comp-${comp.id}`);
-                if (el) el.querySelector('.val-badge').textContent = `0V`;
+                if (el) el.querySelector('.val-badge').textContent = `0${comp.unit}`;
             }
         });
 
