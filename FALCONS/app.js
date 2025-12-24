@@ -689,17 +689,23 @@ function createPaletteItem(comp, isResult = false) {
 
     // Add for mobile: Click to add to center of board
     item.addEventListener('click', () => {
-        // Only if it's not a drag (though 'click' generally handles this)
-        // Check if on mobile or if palette is open (mobile mode)
         if (window.innerWidth <= 768) {
             const rect = circuitBoard.getBoundingClientRect();
-            // Place in the middle of current view
             const x = (rect.width / 2) / zoomLevel - 40;
             const y = (rect.height / 2) / zoomLevel - 30;
             addComponentToCanvas(comp, x, y);
-
-            // Close palette on mobile after adding
             if (palette.classList.contains('open')) palette.classList.remove('open');
+            showToast(`Added ${comp.name}`, "success");
+        }
+    });
+
+    // Add for desktop: Double click to add to center of board
+    item.addEventListener('dblclick', () => {
+        if (window.innerWidth > 768) {
+            const rect = circuitBoard.getBoundingClientRect();
+            const x = (rect.width / 2) / zoomLevel - 40;
+            const y = (rect.height / 2) / zoomLevel - 30;
+            addComponentToCanvas(comp, x, y);
             showToast(`Added ${comp.name}`, "success");
         }
     });
