@@ -998,6 +998,50 @@ function solveCircuit() {
             }
         });
 
+        // Calculate voltage drops across components
+        circuitComponents.forEach(comp => {
+            if (comp.defId === 'bat' || comp.defId === 'ps' || comp.defId === 'cell' ||
+                comp.defId === 'v_meter' || comp.defId === 'a_meter' || comp.defId === 'gnd') return;
+
+            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
+            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
+
+            if (netLIdx === -1 || netRIdx === -1) return;
+
+            const vL = netVoltages.get(netLIdx);
+            const vR = netVoltages.get(netRIdx);
+
+            if (comp.defId === 'led') {
+                const ledDrop = 2.0;
+                if (vL !== undefined && vR === undefined) {
+                    netVoltages.set(netRIdx, Math.max(0, vL - ledDrop));
+                    changed = true;
+                } else if (vR !== undefined && vL === undefined) {
+                    netVoltages.set(netLIdx, vR + ledDrop);
+                    changed = true;
+                }
+            } else if (comp.defId === 'dio') {
+                const diodeDrop = 0.7;
+                if (vL !== undefined && vR === undefined) {
+                    netVoltages.set(netRIdx, Math.max(0, vL - diodeDrop));
+                    changed = true;
+                } else if (vR !== undefined && vL === undefined) {
+                    netVoltages.set(netLIdx, vR + diodeDrop);
+                    changed = true;
+                }
+            } else if (comp.defId === 'res') {
+                if (vL !== undefined && vR === undefined) {
+                    const estimatedDrop = Math.min(vL * 0.3, vL - 0.5);
+                    netVoltages.set(netRIdx, Math.max(0, vL - estimatedDrop));
+                    changed = true;
+                } else if (vR !== undefined && vL === undefined) {
+                    const estimatedDrop = Math.min(vR * 0.3, 3.0);
+                    netVoltages.set(netLIdx, vR + estimatedDrop);
+                    changed = true;
+                }
+            }
+        });
+
         if (!changed) break;
     }
 
