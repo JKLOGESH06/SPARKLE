@@ -931,6 +931,49 @@ function validateCircuit() {
     return isValid;
 }
 
+// --- MNA Solver & Math Helpers ---
+
+function solveLinearSystem(A, b) {
+    // Gaussian Elimination with Partial Pivoting
+    const n = A.length;
+
+    for (let i = 0; i < n; i++) {
+        // Pivot
+        let maxRow = i;
+        for (let k = i + 1; k < n; k++) {
+            if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) maxRow = k;
+        }
+
+        // Swap rows in A and b
+        [A[i], A[maxRow]] = [A[maxRow], A[i]];
+        [b[i], b[maxRow]] = [b[maxRow], b[i]];
+
+        // Eliminate
+        if (Math.abs(A[i][i]) < 1e-10) continue; // Singular or nearly singular
+
+        for (let k = i + 1; k < n; k++) {
+            const factor = A[k][i] / A[i][i];
+            b[k] -= factor * b[i];
+            for (let j = i; j < n; j++) {
+                A[k][j] -= factor * A[i][j];
+            }
+        }
+    }
+
+    // Back Substitution
+    const x = new Array(n).fill(0);
+    for (let i = n - 1; i >= 0; i--) {
+        if (Math.abs(A[i][i]) < 1e-10) continue;
+        let sum = 0;
+        for (let j = i + 1; j < n; j++) {
+            sum += A[i][j] * x[j];
+        }
+        x[i] = (b[i] - sum) / A[i][i];
+    }
+
+    return x;
+}
+
 function solveCircuit() {
     if (!isRunning) return;
 
@@ -979,139 +1022,186 @@ function solveCircuit() {
         });
     });
 
-    // 2. Calculate net voltages
-    const netVoltages = new Map();
-
-    // Assign voltages from power sources  
+    // MNA Setup
+    // Nodes: Ground is reference (0V). Find ground net index.
+    // If no ground, pick net 0 as reference (floating ground).
+    let gndNetIdx = -1;
     circuitComponents.forEach(comp => {
-        if (comp.defId === 'bat' || comp.defId === 'ps' || comp.defId === 'cell') {
-            const voltage = parseFloat(comp.value) || 0;
-            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
-            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
-
-            // Battery: Left = 0V (ground), Right = voltage value
-            if (netLIdx !== -1) netVoltages.set(netLIdx, 0);
-            if (netRIdx !== -1) netVoltages.set(netRIdx, voltage);
-        } else if (comp.defId === 'gnd') {
-            // Ground component
-            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
-            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
-            if (netLIdx !== -1) netVoltages.set(netLIdx, 0);
-            if (netRIdx !== -1) netVoltages.set(netRIdx, 0);
+        if (comp.defId === 'gnd') {
+            const netIdx = nets.findIndex(n => n.some(node => node.compId === comp.id));
+            if (netIdx !== -1) gndNetIdx = netIdx;
         }
     });
 
-    // Propagate voltages through wires (wires have zero resistance)
-    const maxIterations = 50;
-    for (let iter = 0; iter < maxIterations; iter++) {
-        let changed = false;
+    if (gndNetIdx === -1) gndNetIdx = 0; // Default reference if no ground
 
-        // For each wire, ensure connected nets get the same voltage
-        wires.forEach(wire => {
-            const net1Idx = nets.findIndex(n => n.some(node =>
-                node.compId === wire.start.compId && node.nodeId === wire.start.nodeId
-            ));
-            const net2Idx = nets.findIndex(n => n.some(node =>
-                node.compId === wire.end.compId && node.nodeId === wire.end.nodeId
-            ));
+    // Identifying Voltage Sources for MNA size N+M
+    // Voltage Sources: bat, ps, cell, v_meter (ideal V-meter is open circuit, but here acts as sensor. actually ideal Vsource is bat/ps)
+    // We treat 'bat', 'ps', 'cell', 'gnd' (if handled as constraint) as sources in MNA?
+    // Actually simpler: 
+    // Matrix size = NumNets.
+    // Fill G matrix with conductances.
+    // For Voltage sources, we add extra rows/cols (Modified Nodal).
 
-            if (net1Idx === -1 || net2Idx === -1 || net1Idx === net2Idx) return;
+    const voltageSources = [];
+    circuitComponents.forEach(comp => {
+        if (['bat', 'ps', 'cell'].includes(comp.defId)) {
+            voltageSources.push(comp);
+        }
+    });
 
-            const v1 = netVoltages.get(net1Idx);
-            const v2 = netVoltages.get(net2Idx);
+    const numNets = nets.length;
+    const numVS = voltageSources.length;
+    const matrixSize = numNets + numVS;
 
-            if (v1 !== undefined && v2 === undefined) {
-                netVoltages.set(net2Idx, v1);
-                changed = true;
-            } else if (v2 !== undefined && v1 === undefined) {
-                netVoltages.set(net1Idx, v2);
-                changed = true;
+    const G = Array.from({ length: matrixSize }, () => Array(matrixSize).fill(0));
+    const I = new Array(matrixSize).fill(0);
+
+    // Helper to get Net Index
+    const getNetId = (compId, nodeId) => {
+        return nets.findIndex(n => n.some(node => node.compId === compId && node.nodeId === nodeId));
+    };
+
+    // --- Fill Passive Components (R) ---
+    circuitComponents.forEach(comp => {
+        if (comp.defId === 'res' || comp.defId === 'pot' || comp.defId === 'trim' || comp.defId === 'nth') {
+            // Calculate Conductance
+            let r = parseFloat(comp.value) || 1000;
+            if (comp.unit === 'kΩ') r *= 1000;
+            if (comp.unit === 'mΩ') r *= 0.001;
+            if (r < 0.1) r = 0.1; // Prevent div by zero
+
+            const g = 1 / r;
+            const n1 = getNetId(comp.id, 'L');
+            const n2 = getNetId(comp.id, 'R');
+
+            if (n1 !== -1 && n2 !== -1) {
+                G[n1][n1] += g;
+                G[n2][n2] += g;
+                G[n1][n2] -= g;
+                G[n2][n1] -= g;
             }
-        });
+        }
 
-        // Calculate voltage drops across components
-        circuitComponents.forEach(comp => {
-            if (comp.defId === 'bat' || comp.defId === 'ps' || comp.defId === 'cell' ||
-                comp.defId === 'v_meter' || comp.defId === 'a_meter' || comp.defId === 'gnd') return;
-
-            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
-            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
-
-            if (netLIdx === -1 || netRIdx === -1) return;
-
-            const vL = netVoltages.get(netLIdx);
-            const vR = netVoltages.get(netRIdx);
-
-            if (comp.defId === 'led') {
-                const ledDrop = 2.0;
-                if (vL !== undefined && vR === undefined) {
-                    netVoltages.set(netRIdx, Math.max(0, vL - ledDrop));
-                    changed = true;
-                } else if (vR !== undefined && vL === undefined) {
-                    netVoltages.set(netLIdx, vR + ledDrop);
-                    changed = true;
-                }
-            } else if (comp.defId === 'dio') {
-                const diodeDrop = 0.7;
-                if (vL !== undefined && vR === undefined) {
-                    netVoltages.set(netRIdx, Math.max(0, vL - diodeDrop));
-                    changed = true;
-                } else if (vR !== undefined && vL === undefined) {
-                    netVoltages.set(netLIdx, vR + diodeDrop);
-                    changed = true;
-                }
-            } else if (comp.defId === 'res') {
-                if (vL !== undefined && vR === undefined) {
-                    const estimatedDrop = Math.min(vL * 0.3, vL - 0.5);
-                    netVoltages.set(netRIdx, Math.max(0, vL - estimatedDrop));
-                    changed = true;
-                } else if (vR !== undefined && vL === undefined) {
-                    const estimatedDrop = Math.min(vR * 0.3, 3.0);
-                    netVoltages.set(netLIdx, vR + estimatedDrop);
-                    changed = true;
-                }
+        // LED/Diode Approximate Model (Linearized at operating point?)
+        // Simple Fixed Drop model: If V > Drop, it's a Voltage Source?
+        // Let's model as high resistor if off, and low resistor + Vsource if on?
+        // For iteration 0, treat as Resistor (High R).
+        // Better: Use a large resistor (1M) + simple check.
+        // Actually, let's treat them as very high resistance (off) for now to not break solver, 
+        // OR add a small conductance.
+        if (['led', 'dio', 'zen', 'sch'].includes(comp.defId)) {
+            // 1M Ohm leakage
+            const g = 1e-6;
+            const n1 = getNetId(comp.id, 'L');
+            const n2 = getNetId(comp.id, 'R');
+            if (n1 !== -1 && n2 !== -1) {
+                G[n1][n1] += g;
+                G[n2][n2] += g;
+                G[n1][n2] -= g;
+                G[n2][n1] -= g;
             }
-        });
+        }
 
-        if (!changed) break;
+        // Voltmeter: High Resistance (10M)
+        if (comp.defId === 'v_meter') {
+            const g = 1e-7;
+            const n1 = getNetId(comp.id, 'L');
+            const n2 = getNetId(comp.id, 'R');
+            if (n1 !== -1 && n2 !== -1) {
+                G[n1][n1] += g;
+                G[n2][n2] += g;
+                G[n1][n2] -= g;
+                G[n2][n1] -= g;
+            }
+        }
+
+        // Ammeter: Low Resistance (0.01 Ohm)
+        if (comp.defId === 'a_meter') {
+            const g = 1 / 0.01;
+            const n1 = getNetId(comp.id, 'L');
+            const n2 = getNetId(comp.id, 'R');
+            if (n1 !== -1 && n2 !== -1) {
+                G[n1][n1] += g;
+                G[n2][n2] += g;
+                G[n1][n2] -= g;
+                G[n2][n1] -= g;
+            }
+        }
+    });
+
+    // --- Fill Voltage Sources ---
+    voltageSources.forEach((comp, idx) => {
+        const vsIdx = numNets + idx; // Matrix index for this source current
+        let v = parseFloat(comp.value) || 9;
+        if (comp.unit === 'mV') v *= 0.001;
+
+        const nPos = getNetId(comp.id, 'R'); // Right is Positive terminal
+        const nNeg = getNetId(comp.id, 'L'); // Left is Negative terminal
+
+        // Equation: V(nPos) - V(nNeg) = v
+        // In Matrix:
+        // Row vsIdx (Constraint): ... 1*VPos ... -1*VNeg ... = v
+        // Col vsIdx (Current contribution): Adds current I_vs to KCL at nPos, subtracts at nNeg.
+
+        if (nPos !== -1) {
+            G[vsIdx][nPos] = 1;
+            G[nPos][vsIdx] = 1;
+        }
+        if (nNeg !== -1) {
+            G[vsIdx][nNeg] = -1;
+            G[nNeg][vsIdx] = -1;
+        }
+
+        I[vsIdx] = v;
+    });
+
+    // --- Ground Constraint ---
+    // Fix gndNetIdx to 0V.
+    // Modification: replace the row for gndNetIdx with "1 * Vgnd = 0" and clear other entries?
+    // Efficient method: Set row/col G[gnd][gnd]=1, others=0, result[gnd]=0.
+    // Be careful not to make matrix singular if Ground is connected to source.
+    // Instead of row replace, let's just add G[gnd][gnd] += 1e9 (Big conductance to ground).
+    // This is "soft grounding" but numerically stable.
+    if (gndNetIdx !== -1) {
+        G[gndNetIdx][gndNetIdx] += 1e6; // Conductance to abstract 0V reference
+        // I[gndNetIdx] += 0;
     }
 
-    // Default remaining nets to 0V
-    nets.forEach((net, index) => {
-        if (!netVoltages.has(index)) {
-            netVoltages.set(index, 0);
-        }
-    });
+    // --- Solve ---
+    // This gives us voltages at each net index 0..numNets-1
+    // And currents through voltage sources at indices numNets..matrixSize-1
+    const solution = solveLinearSystem(G, I);
 
-    // 3. Update Components
+    // --- Update UI ---
     circuitComponents.forEach(comp => {
         const el = document.getElementById(`comp-${comp.id}`);
         if (!el) return;
 
-        const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
-        const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
-        const vL = netVoltages.get(netLIdx) || 0;
-        const vR = netVoltages.get(netRIdx) || 0;
-        const diff = Math.abs(vR - vL);
+        const n1 = getNetId(comp.id, 'L');
+        const n2 = getNetId(comp.id, 'R');
+        const vL = (n1 !== -1) ? solution[n1] : 0;
+        const vR = (n2 !== -1) ? solution[n2] : 0;
+        const diff = vR - vL;
 
         if (comp.defId === 'v_meter') {
-            // Voltmeter shows voltage difference across its terminals
-            const voltageDiff = vR - vL;
-            el.querySelector('.val-badge').textContent = `${voltageDiff.toFixed(2)}V`;
-            if (Math.abs(voltageDiff) > 0.01) el.classList.add('comp-active-v');
+            el.querySelector('.val-badge').textContent = `${diff.toFixed(2)}V`;
+            if (Math.abs(diff) > 0.01) el.classList.add('comp-active-v');
             else el.classList.remove('comp-active-v');
         }
 
         if (comp.defId === 'a_meter') {
-            const current = diff / 1.0;
-            el.querySelector('.val-badge').textContent = `${current.toFixed(2)}A`;
-            if (current > 0) el.classList.add('comp-active-a');
+            // Current is Vdrop / R_ammeter
+            const i = diff / 0.01;
+            el.querySelector('.val-badge').textContent = `${i.toFixed(3)}A`;
+            if (Math.abs(i) > 0.001) el.classList.add('comp-active-a');
             else el.classList.remove('comp-active-a');
         }
 
-
+        // Simple LED visual
         if (comp.defId === 'led') {
-            if (diff >= 1.5) el.classList.add('comp-active-led');
+            // For MNA with just resistor model, Vdrop determines on/off
+            if (diff > 1.5) el.classList.add('comp-active-led');
             else el.classList.remove('comp-active-led');
         }
     });
