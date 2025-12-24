@@ -228,6 +228,8 @@ const exportExcelBtn = document.getElementById('export-excel-btn');
 const undoBtn = document.getElementById('undo-btn');
 const redoBtn = document.getElementById('redo-btn');
 const downloadBtn = document.getElementById('download-btn');
+const mobilePaletteToggle = document.getElementById('mobile-palette-toggle');
+const palette = document.querySelector('.palette');
 
 // Mode for Auth
 let isLoginMode = true;
@@ -684,6 +686,23 @@ function createPaletteItem(comp, isResult = false) {
         e.dataTransfer.setData('type', comp.id);
         e.dataTransfer.effectAllowed = 'copy';
     });
+
+    // Add for mobile: Click to add to center of board
+    item.addEventListener('click', () => {
+        // Only if it's not a drag (though 'click' generally handles this)
+        // Check if on mobile or if palette is open (mobile mode)
+        if (window.innerWidth <= 768) {
+            const rect = circuitBoard.getBoundingClientRect();
+            // Place in the middle of current view
+            const x = (rect.width / 2) / zoomLevel - 40;
+            const y = (rect.height / 2) / zoomLevel - 30;
+            addComponentToCanvas(comp, x, y);
+
+            // Close palette on mobile after adding
+            if (palette.classList.contains('open')) palette.classList.remove('open');
+            showToast(`Added ${comp.name}`, "success");
+        }
+    });
     return item;
 }
 
@@ -705,6 +724,18 @@ componentSearch.addEventListener('input', (e) => {
 
 
 function setupCanvasInteractions() {
+    // Mobile Palette Toggle
+    if (mobilePaletteToggle) {
+        mobilePaletteToggle.addEventListener('click', () => {
+            palette.classList.toggle('open');
+        });
+    }
+
+    // Close palette when clicking outside or on canvas
+    circuitBoard.addEventListener('mousedown', () => {
+        if (palette && palette.classList.contains('open')) palette.classList.remove('open');
+    });
+
     circuitBoard.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
     circuitBoard.addEventListener('drop', (e) => {
         e.preventDefault();
@@ -717,18 +748,35 @@ function setupCanvasInteractions() {
             addComponentToCanvas(compDef, x, y);
         }
     });
-    window.addEventListener('mousemove', (e) => {
+
+    const getEventPos = (e) => {
+        const rect = circuitBoard.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) / zoomLevel,
+            y: (clientY - rect.top) / zoomLevel
+        };
+    };
+
+    const handleMove = (e) => {
         if (currentWireStart) {
-            const rect = circuitBoard.getBoundingClientRect();
-            tempWireEnd = { x: (e.clientX - rect.left) / zoomLevel, y: (e.clientY - rect.top) / zoomLevel };
+            tempWireEnd = getEventPos(e);
             drawWires();
         }
-    });
-    window.addEventListener('mouseup', (e) => {
+    };
+
+    const handleUp = (e) => {
         if (currentWireStart && !e.target.classList.contains('node')) {
             currentWireStart = null; tempWireEnd = null; drawWires();
         }
-    });
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('mouseup', handleUp);
+    window.addEventListener('touchend', handleUp);
+
     zoomInBtn.addEventListener('click', () => updateZoom(0.1));
     zoomOutBtn.addEventListener('click', () => updateZoom(-0.1));
 }
@@ -1044,16 +1092,22 @@ function attachComponentInteractions(el, compData) {
     let offset = { x: 0, y: 0 };
     let startPos = { x: 0, y: 0 };
 
-    el.addEventListener('mousedown', (e) => {
+    const handleDown = (e) => {
         if (e.target.classList.contains('node') || e.button === 2) return;
         isDragging = true;
         const rect = el.getBoundingClientRect();
-        offset.x = (e.clientX - rect.left) / zoomLevel;
-        offset.y = (e.clientY - rect.top) / zoomLevel;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        offset.x = (clientX - rect.left) / zoomLevel;
+        offset.y = (clientY - rect.top) / zoomLevel;
         startPos = { x: compData.x, y: compData.y };
         document.querySelectorAll('.circuit-component').forEach(c => c.classList.remove('selected'));
         el.classList.add('selected');
-    });
+        if (e.touches) e.preventDefault(); // Prevent scrolling while dragging
+    };
+
+    el.addEventListener('mousedown', handleDown);
+    el.addEventListener('touchstart', handleDown, { passive: false });
 
     el.addEventListener('contextmenu', (e) => {
         e.preventDefault(); e.stopPropagation();
@@ -1062,18 +1116,24 @@ function attachComponentInteractions(el, compData) {
         contextMenu.classList.remove('hidden');
     });
 
-    window.addEventListener('mousemove', (e) => {
+    const handleMove = (e) => {
         if (isDragging) {
             const boardRect = circuitBoard.getBoundingClientRect();
-            let rawX = (e.clientX - boardRect.left) / zoomLevel - offset.x;
-            let rawY = (e.clientY - boardRect.top) / zoomLevel - offset.y;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            let rawX = (clientX - boardRect.left) / zoomLevel - offset.x;
+            let rawY = (clientY - boardRect.top) / zoomLevel - offset.y;
             let newX = Math.round(rawX / 20) * 20; let newY = Math.round(rawY / 20) * 20;
             el.style.left = `${newX}px`; el.style.top = `${newY}px`;
             compData.x = newX; compData.y = newY; drawWires();
+            if (e.touches) e.preventDefault();
         }
-    });
+    };
 
-    window.addEventListener('mouseup', () => {
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('touchmove', handleMove, { passive: false });
+
+    const handleUp = () => {
         if (isDragging) {
             isDragging = false;
             if (compData.x !== startPos.x || compData.y !== startPos.y) {
@@ -1084,12 +1144,32 @@ function attachComponentInteractions(el, compData) {
                 });
             }
         }
-    });
+    };
+
+    window.addEventListener('mouseup', handleUp);
+    window.addEventListener('touchend', handleUp);
 
     el.addEventListener('dblclick', () => openEditModal(compData));
 
+    // For mobile: handle double tap or long press for edit? 
+    // Let's just add a small "edit" button later if needed, or stick to dblclick for now which works in some mobile browsers as fast double tap.
+    // Actually, let's add a long press for context menu/edit on mobile.
+    let pressTimer;
+    el.addEventListener('touchstart', (e) => {
+        pressTimer = window.setTimeout(() => {
+            if (!isDragging) {
+                contextMenuTargetId = compData.id;
+                const touch = e.touches[0];
+                contextMenu.style.left = `${touch.clientX}px`; contextMenu.style.top = `${touch.clientY}px`;
+                contextMenu.classList.remove('hidden');
+            }
+        }, 600);
+    });
+    el.addEventListener('touchend', () => clearTimeout(pressTimer));
+    el.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
     el.querySelectorAll('.node').forEach(node => {
-        node.addEventListener('mousedown', (e) => {
+        const handleNodeDown = (e) => {
             if (e.button === 2) return;
             e.stopPropagation();
             const rect = node.getBoundingClientRect();
@@ -1103,7 +1183,10 @@ function attachComponentInteractions(el, compData) {
                 addToHistory({ type: 'WIRE', data: { wire: newWire } });
                 currentWireStart = null; tempWireEnd = null; drawWires();
             }
-        });
+            if (e.touches) e.preventDefault();
+        };
+        node.addEventListener('mousedown', handleNodeDown);
+        node.addEventListener('touchstart', handleNodeDown, { passive: false });
     });
 }
 

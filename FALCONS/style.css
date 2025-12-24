@@ -268,6 +268,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    white-space: nowrap;
 }
 
 .toolbar-btn:hover {
@@ -798,4 +799,105 @@ body {
     color: #00ffff !important;
     text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
     transform: translateY(-2px);
+}
+
+/* Mobile Responsiveness */
+.mobile-only-btn {
+    display: none;
+    background: none;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    width: 35px;
+    height: 35px;
+    border-radius: 4px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .login-panel {
+        width: 95%;
+        max-width: 380px;
+        padding: 30px 20px;
+    }
+
+    .top-nav {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .nav-brand {
+        flex: none;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .mobile-only-btn {
+        display: flex;
+        margin-right: 15px;
+    }
+
+    .toolbar {
+        order: 2;
+        width: 100%;
+        justify-content: space-between;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .nav-actions {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .toolbar-btn span {
+        display: none;
+        /* Hide text on small buttons */
+    }
+
+    .toolbar-btn {
+        padding: 8px 12px;
+    }
+
+    .workspace-container {
+        flex-direction: column;
+        position: relative;
+    }
+
+    .palette {
+        position: absolute;
+        top: 0;
+        left: -270px;
+        bottom: 0;
+        z-index: 1000;
+        width: 260px;
+        margin: 0;
+        background: rgba(5, 5, 16, 0.95);
+        transition: left 0.3s ease;
+        box-shadow: 10px 0 15px rgba(0, 0, 0, 0.5);
+    }
+
+    .palette.open {
+        left: 0;
+    }
+
+    .canvas-area {
+        height: 100%;
+    }
+
+    .modal-content {
+        width: 90%;
+        max-width: 320px;
+        padding: 20px;
+    }
+
+    .nav-brand span.badge {
+        font-size: 0.6rem;
+    }
 }
