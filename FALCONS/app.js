@@ -948,24 +948,97 @@ function solveCircuit() {
         });
     });
 
-    // 2. Identify Voltages
-    // Net maps to a voltage value
+    // 2. Identify Voltages and distribute them across the circuit
     const netVoltages = new Map();
 
+    // First pass: Mark nets with known voltages (sources and ground)
     nets.forEach((net, index) => {
-        let voltage = 0;
-        // Check if any node in this net is connected to a source's positive terminal
+        let voltage = null;
         net.forEach(node => {
             const comp = circuitComponents.find(c => c.id === node.compId);
             if (comp.defId === 'bat' || comp.defId === 'ps' || comp.defId === 'cell') {
-                if (node.nodeId === 'R') { // Assume Right is positive for sources
+                if (node.nodeId === 'R') { // Right is positive for sources
                     voltage = parseFloat(comp.value) || 0;
                 }
             } else if (comp.defId === 'gnd') {
                 voltage = 0;
             }
         });
-        netVoltages.set(index, voltage);
+        if (voltage !== null) {
+            netVoltages.set(index, voltage);
+        }
+    });
+
+    // Second pass: Propagate voltages through the circuit using voltage division
+    // This is a simplified approach that estimates voltage drops
+    const maxIterations = 20;
+    for (let iter = 0; iter < maxIterations; iter++) {
+        let changed = false;
+
+        // For each component, try to calculate voltages on unkno nets based on neighbors
+        circuitComponents.forEach(comp => {
+            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
+            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
+
+            const vL = netVoltages.get(netLIdx);
+            const vR = netVoltages.get(netRIdx);
+
+            // Get component resistance/drop characteristics
+            let compDrop = 0;
+            let compResistance = 0;
+
+            if (comp.defId === 'res') {
+                compResistance = parseFloat(comp.value) || 1000;
+            } else if (comp.defId === 'led') {
+                compDrop = 2.0; // Typical LED forward voltage drop
+            } else if (comp.defId === 'dio') {
+                compDrop = 0.7; // Diode forward voltage
+            } else if (comp.defId === 'zen') {
+                compDrop = parseFloat(comp.value) || 5.1; // Zener voltage
+            }
+
+            // If one side has a voltage and the other doesn't, propagate
+            if (vL !== undefined && vR === undefined) {
+                // Estimate voltage on right side
+                if (comp.defId === 'led' || comp.defId === 'dio' || comp.defId === 'zen') {
+                    netVoltages.set(netRIdx, vL - compDrop);
+                    changed = true;
+                } else if (comp.defId === 'res' && compResistance > 0) {
+                    // For resistors, assume some voltage drop (simplified)
+                    // In a real circuit solver, we'd need current calculation
+                    // For now, distribute voltage proportionally
+                    const estimatedDrop = Math.min(vL * 0.3, 3.0); // Rough estimate
+                    netVoltages.set(netRIdx, vL - estimatedDrop);
+                    changed = true;
+                } else {
+                    // For other components, assume minimal drop
+                    netVoltages.set(netRIdx, vL);
+                    changed = true;
+                }
+            } else if (vR !== undefined && vL === undefined) {
+                // Propagate in reverse direction
+                if (comp.defId === 'led' || comp.defId === 'dio' || comp.defId === 'zen') {
+                    netVoltages.set(netLIdx, vR + compDrop);
+                    changed = true;
+                } else if (comp.defId === 'res' && compResistance > 0) {
+                    const estimatedDrop = Math.min(vR * 0.3, 3.0);
+                    netVoltages.set(netLIdx, vR + estimatedDrop);
+                    changed = true;
+                } else {
+                    netVoltages.set(netLIdx, vR);
+                    changed = true;
+                }
+            }
+        });
+
+        if (!changed) break; // Converged
+    }
+
+    // Fill in any remaining unknown voltages with 0
+    nets.forEach((net, index) => {
+        if (!netVoltages.has(index)) {
+            netVoltages.set(index, 0);
+        }
     });
 
     // 3. Update Components
