@@ -1322,7 +1322,7 @@ circuitComponents.forEach(comp => {
         else el.classList.remove('comp-active-led');
     }
 });
-}
+
 
 function openEditModal(compData) {
     editingComponentId = compData.id;
