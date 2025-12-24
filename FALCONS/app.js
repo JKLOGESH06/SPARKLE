@@ -980,8 +980,11 @@ function solveCircuit() {
         const diff = Math.abs(vR - vL);
 
         if (comp.defId === 'v_meter') {
-            el.querySelector('.val-badge').textContent = `${diff.toFixed(1)}V`;
-            if (diff > 0) el.classList.add('comp-active-v');
+            // Voltmeter should show voltage difference across its two terminals
+            // vR - vL gives us the potential difference (not absolute value)
+            const voltageDiff = vR - vL;
+            el.querySelector('.val-badge').textContent = `${voltageDiff.toFixed(2)}V`;
+            if (Math.abs(voltageDiff) > 0.01) el.classList.add('comp-active-v');
             else el.classList.remove('comp-active-v');
         }
 
