@@ -948,93 +948,29 @@ function solveCircuit() {
         });
     });
 
-    // 2. Identify Voltages and distribute them across the circuit
+    // 2. Calculate net voltages
     const netVoltages = new Map();
 
-    // First pass: Mark nets with known voltages (sources and ground)
-    nets.forEach((net, index) => {
-        let voltage = null;
-        net.forEach(node => {
-            const comp = circuitComponents.find(c => c.id === node.compId);
-            if (comp.defId === 'bat' || comp.defId === 'ps' || comp.defId === 'cell') {
-                if (node.nodeId === 'R') { // Right is positive for sources
-                    voltage = parseFloat(comp.value) || 0;
-                }
-            } else if (comp.defId === 'gnd') {
-                voltage = 0;
-            }
-        });
-        if (voltage !== null) {
-            netVoltages.set(index, voltage);
-        }
-    });
-
-    // Second pass: Propagate voltages through the circuit using voltage division
-    // This is a simplified approach that estimates voltage drops
-    const maxIterations = 20;
-    for (let iter = 0; iter < maxIterations; iter++) {
-        let changed = false;
-
-        // For each component, try to calculate voltages on unkno nets based on neighbors
-        circuitComponents.forEach(comp => {
+    // Assign voltages from power sources  
+    circuitComponents.forEach(comp => {
+        if (comp.defId === 'bat' || comp.defId === 'ps' || comp.defId === 'cell') {
+            const voltage = parseFloat(comp.value) || 0;
             const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
             const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
 
-            const vL = netVoltages.get(netLIdx);
-            const vR = netVoltages.get(netRIdx);
+            // Battery: Left = 0V (ground), Right = voltage value
+            if (netLIdx !== -1) netVoltages.set(netLIdx, 0);
+            if (netRIdx !== -1) netVoltages.set(netRIdx, voltage);
+        } else if (comp.defId === 'gnd') {
+            // Ground component
+            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
+            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
+            if (netLIdx !== -1) netVoltages.set(netLIdx, 0);
+            if (netRIdx !== -1) netVoltages.set(netRIdx, 0);
+        }
+    });
 
-            // Get component resistance/drop characteristics
-            let compDrop = 0;
-            let compResistance = 0;
-
-            if (comp.defId === 'res') {
-                compResistance = parseFloat(comp.value) || 1000;
-            } else if (comp.defId === 'led') {
-                compDrop = 2.0; // Typical LED forward voltage drop
-            } else if (comp.defId === 'dio') {
-                compDrop = 0.7; // Diode forward voltage
-            } else if (comp.defId === 'zen') {
-                compDrop = parseFloat(comp.value) || 5.1; // Zener voltage
-            }
-
-            // If one side has a voltage and the other doesn't, propagate
-            if (vL !== undefined && vR === undefined) {
-                // Estimate voltage on right side
-                if (comp.defId === 'led' || comp.defId === 'dio' || comp.defId === 'zen') {
-                    netVoltages.set(netRIdx, vL - compDrop);
-                    changed = true;
-                } else if (comp.defId === 'res' && compResistance > 0) {
-                    // For resistors, assume some voltage drop (simplified)
-                    // In a real circuit solver, we'd need current calculation
-                    // For now, distribute voltage proportionally
-                    const estimatedDrop = Math.min(vL * 0.3, 3.0); // Rough estimate
-                    netVoltages.set(netRIdx, vL - estimatedDrop);
-                    changed = true;
-                } else {
-                    // For other components, assume minimal drop
-                    netVoltages.set(netRIdx, vL);
-                    changed = true;
-                }
-            } else if (vR !== undefined && vL === undefined) {
-                // Propagate in reverse direction
-                if (comp.defId === 'led' || comp.defId === 'dio' || comp.defId === 'zen') {
-                    netVoltages.set(netLIdx, vR + compDrop);
-                    changed = true;
-                } else if (comp.defId === 'res' && compResistance > 0) {
-                    const estimatedDrop = Math.min(vR * 0.3, 3.0);
-                    netVoltages.set(netLIdx, vR + estimatedDrop);
-                    changed = true;
-                } else {
-                    netVoltages.set(netLIdx, vR);
-                    changed = true;
-                }
-            }
-        });
-
-        if (!changed) break; // Converged
-    }
-
-    // Fill in any remaining unknown voltages with 0
+    // Default remaining nets to 0V
     nets.forEach((net, index) => {
         if (!netVoltages.has(index)) {
             netVoltages.set(index, 0);
@@ -1053,8 +989,7 @@ function solveCircuit() {
         const diff = Math.abs(vR - vL);
 
         if (comp.defId === 'v_meter') {
-            // Voltmeter should show voltage difference across its two terminals
-            // vR - vL gives us the potential difference (not absolute value)
+            // Voltmeter shows voltage difference across its terminals
             const voltageDiff = vR - vL;
             el.querySelector('.val-badge').textContent = `${voltageDiff.toFixed(2)}V`;
             if (Math.abs(voltageDiff) > 0.01) el.classList.add('comp-active-v');
@@ -1062,18 +997,12 @@ function solveCircuit() {
         }
 
         if (comp.defId === 'a_meter') {
-            // Simple Ohm's Law for Current reading: I = V / R_path
-            // We assume a 100 Ohm internal resistance for the ammeter for calculation purposes
-            // Or better: just show V difference if user connected it across something.
-            // For a series ammeter, we need to know the circuit impedance. 
-            // Simplified: I = (V_source / (R_load + 0.1))
-            // Here we'll just show current proportional to voltage drop across the meter
-            // with a 1 Ohm shunt assumption for display.
             const current = diff / 1.0;
             el.querySelector('.val-badge').textContent = `${current.toFixed(2)}A`;
             if (current > 0) el.classList.add('comp-active-a');
             else el.classList.remove('comp-active-a');
         }
+
 
         if (comp.defId === 'led') {
             if (diff >= 1.5) el.classList.add('comp-active-led');
