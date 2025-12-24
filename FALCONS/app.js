@@ -970,6 +970,37 @@ function solveCircuit() {
         }
     });
 
+    // Propagate voltages through wires (wires have zero resistance)
+    const maxIterations = 50;
+    for (let iter = 0; iter < maxIterations; iter++) {
+        let changed = false;
+
+        // For each wire, ensure connected nets get the same voltage
+        wires.forEach(wire => {
+            const net1Idx = nets.findIndex(n => n.some(node =>
+                node.compId === wire.start.compId && node.nodeId === wire.start.nodeId
+            ));
+            const net2Idx = nets.findIndex(n => n.some(node =>
+                node.compId === wire.end.compId && node.nodeId === wire.end.nodeId
+            ));
+
+            if (net1Idx === -1 || net2Idx === -1 || net1Idx === net2Idx) return;
+
+            const v1 = netVoltages.get(net1Idx);
+            const v2 = netVoltages.get(net2Idx);
+
+            if (v1 !== undefined && v2 === undefined) {
+                netVoltages.set(net2Idx, v1);
+                changed = true;
+            } else if (v2 !== undefined && v1 === undefined) {
+                netVoltages.set(net1Idx, v2);
+                changed = true;
+            }
+        });
+
+        if (!changed) break;
+    }
+
     // Default remaining nets to 0V
     nets.forEach((net, index) => {
         if (!netVoltages.has(index)) {
