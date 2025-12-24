@@ -816,7 +816,7 @@ function deleteComponent(id, recordHistory = true) {
 
 function addComponentToCanvas(compDef, x, y) {
     const id = nextId++;
-    const compData = { id: id, defId: compDef.id, name: compDef.name, value: compDef.value, unit: compDef.unit, x: x, y: y };
+    const compData = { id: id, defId: compDef.id, name: compDef.name, value: compDef.value, unit: compDef.unit, x: x, y: y, rotation: 0 };
     circuitComponents.push(compData);
 
     const el = document.createElement('div');
@@ -842,7 +842,38 @@ function drawWires() {
     wiresLayer.innerHTML = '';
     const getPos = (compId, nodeId) => {
         const comp = circuitComponents.find(c => c.id === compId); if (!comp) return { x: 0, y: 0 };
-        let y = comp.y + 30; let x = comp.x; if (nodeId === 'R') x += 80; return { x, y };
+
+        // Pivot is center of 80x60 component relative to x,y
+        // Actually visual SVG is 60x40 centered in 80x60 div?
+        // Let's check style.css: .circuit-component width 80, height 60.
+        // Node offsets from top-left of component div:
+        // Left Node: left: 5px, top: 20px
+        // Right Node: right: 5px (75px), top: 20px
+        // Center of rotation: 40px, 30px (midpoint of 80x60)
+
+        const cx = 40;
+        const cy = 30;
+
+        // Unrotated coords relative to component top-left
+        let lx = (nodeId === 'L') ? 9 : 71; // 5 + 4(radius) = 9
+        let ly = 24; // 20 + 4(radius) = 24
+
+        // Apply Rotation
+        const rad = (comp.rotation || 0) * (Math.PI / 180);
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        // Translate to origin (center), rotate, translate back
+        const dx = lx - cx;
+        const dy = ly - cy;
+
+        const rdx = dx * cos - dy * sin;
+        const rdy = dx * sin + dy * cos;
+
+        return {
+            x: comp.x + cx + rdx,
+            y: comp.y + cy + rdy
+        };
     };
     wires.forEach(wire => {
         const p1 = getPos(wire.start.compId, wire.start.nodeId);
@@ -1153,13 +1184,43 @@ function moveComponent(id, x, y) {
     }
 }
 
+function rotateComponent(id) {
+    const comp = circuitComponents.find(c => c.id === id);
+    if (!comp) return;
+
+    if (!comp.rotation) comp.rotation = 0;
+    const oldRotation = comp.rotation;
+    comp.rotation = (comp.rotation + 90) % 360;
+
+    const el = document.getElementById(`comp-${id}`);
+    if (el) {
+        el.style.transform = `rotate(${comp.rotation}deg)`;
+    }
+
+    drawWires();
+}
+
+// Global Key Listener for Rotation
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Find selected component
+        const selected = document.querySelector('.circuit-component.selected');
+        if (selected) {
+            const idPart = selected.id.split('-')[1];
+            if (idPart) rotateComponent(parseInt(idPart));
+        }
+    }
+});
+
 function restoreComponent(compData, connectedWires) {
+    if (compData.rotation === undefined) compData.rotation = 0;
     circuitComponents.push(compData);
     const el = document.createElement('div');
     el.className = 'circuit-component component-2d';
     el.id = `comp-${compData.id}`;
     el.style.left = `${compData.x}px`;
     el.style.top = `${compData.y}px`;
+    if (compData.rotation) el.style.transform = `rotate(${compData.rotation}deg)`;
     const svgPath = svgIcons[compData.defId] || svgIcons['res'];
     el.innerHTML = `
         <div class="node node-left" data-node="L"></div>
