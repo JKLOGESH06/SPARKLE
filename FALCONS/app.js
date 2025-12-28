@@ -925,10 +925,10 @@ function validateCircuit() {
     });
 
     if (!isValid) {
-        showToast("Connection Error: Open circuit detected. Please connect all component pins.");
+        showToast("Warning: Open circuit pins detected. Simulation continues.", "warning");
     }
 
-    return isValid;
+    return true; // Allow running anyway
 }
 
 // --- MNA Solver & Math Helpers ---
@@ -1346,13 +1346,27 @@ saveValueBtn.addEventListener('click', () => {
 
 if (runBtn) {
     runBtn.addEventListener('click', () => {
-        if (validateCircuit()) {
+        // Validate but don't block
+        if (!validateCircuit()) {
+            // Optional: Decide if we want to block or just warn. 
+            // Logic in validateCircuit deals with the toast.
+            // Let's allow running even if partial, for better UX.
+        }
+
+        // Force run
+        try {
             isRunning = true;
             runBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
             drawWires();
             solveCircuit();
             document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = '#00f2ea');
+        } catch (err) {
+            console.error(err);
+            showToast("Simulation Error: " + err.message);
+            isRunning = false;
+            runBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
         }
     });
 }
