@@ -1309,7 +1309,7 @@ circuitComponents.forEach(comp => {
 
     if (comp.defId === 'a_meter') {
         // Current is Vdrop / R_ammeter
-        const i = diff / 0.01;
+        const i = diff / 0.001;
         el.querySelector('.val-badge').textContent = `${i.toFixed(3)}A`;
         if (Math.abs(i) > 0.001) el.classList.add('comp-active-a');
         else el.classList.remove('comp-active-a');
