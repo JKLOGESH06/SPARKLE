@@ -637,15 +637,10 @@ function renderPalette(query = '') {
         }
     }
 
-    // --- FULL LIBRARY SECTION ---
-    if (lowQuery) {
-        const fullHeader = document.createElement('div');
-        fullHeader.className = 'palette-category-header';
-        fullHeader.style.opacity = '0.5';
-        fullHeader.textContent = 'All Components';
-        listContainer.appendChild(fullHeader);
-    }
+    // If we have a query, we stop here (Only show matches)
+    if (lowQuery) return;
 
+    // --- FULL LIBRARY SECTION (Only if no search) ---
     const categories = {
         'source': 'Power Sources',
         'passive': 'Passive Components',
@@ -664,9 +659,6 @@ function renderPalette(query = '') {
             listContainer.appendChild(header);
 
             catComps.forEach(comp => {
-                // If searching, skip the duplicate if it's already in matches
-                if (lowQuery && matches.find(m => m.id === comp.id)) return;
-
                 listContainer.appendChild(createPaletteItem(comp));
             });
         }
@@ -1356,9 +1348,11 @@ if (runBtn) {
 
         // Force run
         try {
+            console.log("Starting simulation...");
             isRunning = true;
             runBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
+            showToast("Simulation Started", "success");
             drawWires();
             solveCircuit();
             document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = '#00f2ea');
