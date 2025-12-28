@@ -1247,8 +1247,8 @@ voltageSources.forEach((comp, idx) => {
     let v = parseFloat(comp.value) || 9;
     if (comp.unit === 'mV') v *= 0.001;
 
-    const nPos = getNetId(comp.id, 'R'); // Right is Positive terminal
-    const nNeg = getNetId(comp.id, 'L'); // Left is Negative terminal
+    const nPos = getNetId(comp.id, 'L'); // Left is Positive terminal (Long Bar)
+    const nNeg = getNetId(comp.id, 'R'); // Right is Negative terminal (Short Bar)
 
     // Equation: V(nPos) - V(nNeg) = v
     // In Matrix:
