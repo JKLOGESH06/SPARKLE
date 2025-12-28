@@ -1327,16 +1327,26 @@ function openEditModal(compData) {
     editModal.classList.remove('hidden');
 }
 
-saveValueBtn.addEventListener('click', () => {
-    const valStr = editValue.value;
-    const comp = circuitComponents.find(c => c.id === editingComponentId);
-    if (comp) {
-        comp.value = valStr;
-        const el = document.getElementById(`comp-${comp.id}`);
-        el.querySelector('.val-badge').textContent = `${valStr}${comp.unit}`;
-    }
-    editModal.classList.add('hidden');
-});
+if (saveValueBtn) {
+    saveValueBtn.addEventListener('click', () => {
+        try {
+            const valStr = editValue.value;
+            const comp = circuitComponents.find(c => c.id === editingComponentId);
+            if (comp) {
+                comp.value = valStr;
+                const el = document.getElementById(`comp-${comp.id}`);
+                if (el) el.querySelector('.val-badge').textContent = `${valStr}${comp.unit}`;
+                showToast("Component updated", "success");
+            } else {
+                showToast("Error: Component not found");
+            }
+            editModal.classList.add('hidden');
+        } catch (err) {
+            console.error(err);
+            alert("Update Error: " + err.message);
+        }
+    });
+}
 
 if (runBtn) {
     runBtn.addEventListener('click', () => {
