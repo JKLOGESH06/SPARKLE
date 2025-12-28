@@ -1346,6 +1346,7 @@ saveValueBtn.addEventListener('click', () => {
 
 if (runBtn) {
     runBtn.addEventListener('click', () => {
+        console.log("Run button clicked");
         // Validate but don't block
         if (!validateCircuit()) {
             // Optional: Decide if we want to block or just warn. 
