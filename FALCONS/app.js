@@ -717,7 +717,8 @@ componentSearch.addEventListener('keypress', (e) => {
 
 // Real-time filtering remains as an option or can be disabled
 componentSearch.addEventListener('input', (e) => {
-    if (e.target.value === '') renderPalette();
+    // Always render, even if empty (which resets to full list)
+    renderPalette(e.target.value);
 });
 
 
