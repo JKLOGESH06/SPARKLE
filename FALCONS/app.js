@@ -969,6 +969,7 @@ function solveLinearSystem(A, b) {
 
 function solveCircuit() {
     if (!isRunning) return;
+    console.log("Trace: solveCircuit start");
 
     // 1. Identify Nets (Groups of connected nodes)
     const nets = [];
@@ -1359,7 +1360,7 @@ if (runBtn) {
             document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = '#00f2ea');
         } catch (err) {
             console.error(err);
-            showToast("Simulation Error: " + err.message);
+            alert("Simulation Error: " + err.message + "\nCheck console for details.");
             isRunning = false;
             runBtn.classList.remove('hidden');
             stopBtn.classList.add('hidden');
