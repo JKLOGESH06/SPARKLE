@@ -1327,26 +1327,50 @@ function openEditModal(compData) {
     editModal.classList.remove('hidden');
 }
 
+// Direct assignment to ensure no event listener issues
 if (saveValueBtn) {
-    saveValueBtn.addEventListener('click', () => {
+    saveValueBtn.onclick = function updateComponentValue() {
+        console.log("Update Clicked via onclick");
         try {
+            if (!editValue) {
+                alert("Critical Error: Edit input not found in DOM");
+                return;
+            }
+
             const valStr = editValue.value;
+            console.log("Updating ID:", editingComponentId, "Value:", valStr);
+
+            if (editingComponentId === null) {
+                alert("Error: No component ID currently selected.");
+                return;
+            }
+
             const comp = circuitComponents.find(c => c.id === editingComponentId);
             if (comp) {
                 comp.value = valStr;
+
+                // Update Badge UI
                 const el = document.getElementById(`comp-${comp.id}`);
-                if (el) el.querySelector('.val-badge').textContent = `${valStr}${comp.unit}`;
-                showToast("Component updated", "success");
+                if (el) {
+                    const badge = el.querySelector('.val-badge');
+                    if (badge) badge.textContent = `${valStr}${comp.unit}`;
+                }
+
+                showToast("Component updated: " + valStr + comp.unit, "success");
             } else {
-                showToast("Error: Component not found");
+                alert("Error: Component not found in memory. Try refreshing.");
             }
-            editModal.classList.add('hidden');
-        } catch (err) {
-            console.error(err);
-            alert("Update Error: " + err.message);
+
+            // Close Modal
+            if (editModal) editModal.classList.add('hidden');
+
+        } catch (e) {
+            alert("Update Handler Error: " + e.message);
+            console.error(e);
         }
-    });
-}
+    };
+} else { /* Just to handle the else block from previous code if it existed, or cleaner replace */ }
+
 
 if (runBtn) {
     runBtn.addEventListener('click', () => {
