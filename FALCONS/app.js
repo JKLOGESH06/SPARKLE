@@ -979,7 +979,7 @@ function solveCircuit() {
     // Helper: Build Nets
     function getNet(compId, nodeId) {
         const key = `${compId}-${nodeId}`;
-        if (visitedNodes.has(key)) return nodeMap.get(key);
+        if (visitedNodes.has(key)) return null;
 
         const net = [];
         const queue = [{ compId, nodeId }];
