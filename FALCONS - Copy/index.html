@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPARKLE Simulation</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="background-globes">
+        <div class="globe g1"></div>
+        <div class="globe g2"></div>
+        <div class="globe g3"></div>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <section id="login-screen" class="screen active">
+        <div class="glass-panel login-panel">
+            <div class="logo-area">
+                <i class="fa-solid fa-microchip"></i>
+                <h1>SPARKLE</h1>
+                <p>Advanced Component Simulation</p>
+            </div>
+
+            <form id="login-form">
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="username" placeholder="Username" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+
+                <div id="login-error" class="login-error hidden"></div>
+
+                <button type="submit" id="submit-btn" class="btn-primary">Initialize System <i
+                        class="fa-solid fa-arrow-right"></i></button>
+            </form>
+
+            <div class="login-footer">
+                <p id="auth-toggle-wrapper">Don't have an account? <button id="auth-toggle-btn" class="btn-link"
+                        style="background:none; border:none; color:var(--primary); cursor:pointer; font-family:inherit; padding:0; text-decoration:underline;">Sign
+                        Up</button></p>
+                <button id="settings-btn" class="btn-text"><i class="fa-solid fa-gear"></i> System Settings</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- DASHBOARD SCREEN (SIMULATION WORKSPACE) -->
+    <section id="dashboard-screen" class="screen hidden">
+        <nav class="top-nav">
+            <div class="nav-brand">
+                <i class="fa-solid fa-microchip"></i>
+                <span>SPARKLE</span> <span class="badge">SIMULATOR</span>
+            </div>
+
+            <div class="toolbar">
+                <button id="undo-btn" class="toolbar-btn" disabled title="Undo"><i
+                        class="fa-solid fa-rotate-left"></i></button>
+                <button id="redo-btn" class="toolbar-btn" disabled title="Redo"><i
+                        class="fa-solid fa-rotate-right"></i></button>
+                <div class="separator"></div>
+                <button id="run-btn" class="toolbar-btn"><i class="fa-solid fa-play"></i> RUN</button>
+                <button id="stop-btn" class="toolbar-btn hidden"><i class="fa-solid fa-stop"></i> STOP</button>
+            </div>
+
+            <div class="nav-actions">
+                <button id="download-btn" class="toolbar-btn" title="Download Image">
+                    <i class="fa-solid fa-image"></i> DOWNLOAD
+                </button>
+
+                <!-- Cloud Buttons -->
+                <button id="cloud-save-btn" class="toolbar-btn cloud-btn" title="Save to Cloud">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> SAVE
+                </button>
+                <button id="cloud-load-btn" class="toolbar-btn cloud-btn" title="Load from Cloud">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> LOAD
+                </button>
+
+                <div class="separator"></div>
+                <button id="auth-btn" class="auth-btn">Login</button>
+            </div>
+        </nav>
+
+        <div class="workspace-container">
+            <!-- COMPONENT PALETTE -->
+            <aside class="palette glass-panel">
+                <div class="palette-header">
+                    <h3>Components</h3>
+                    <div class="search-container">
+                        <input type="text" id="component-search" placeholder="Search components...">
+                        <button id="search-btn" class="btn btn-primary-sm">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="palette-list" class="palette-list">
+                    <!-- Components injected via JS -->
+                </div>
+            </aside>
+
+            <!-- CANVAS AREA -->
+            <main class="canvas-area">
+                <div id="circuit-board" class="circuit-board">
+                    <svg id="wires-layer"></svg>
+                    <!-- Dropped components go here -->
+                </div>
+                <div class="canvas-controls">
+                    <button id="zoom-in"><i class="fa-solid fa-plus"></i></button>
+                    <button id="zoom-out"><i class="fa-solid fa-minus"></i></button>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <!-- NOTIFICATION AREA -->
+    <div id="notification-area" class="notification-area"></div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h3>System Configuration</h3>
+                <button class="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label>Theme Mode</label>
+                    <select class="glass-select">
+                        <option>Cyber Dark</option>
+                        <option>Neon Blue</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>Simulation Speed</label>
+                    <input type="range" min="1" max="100" value="50" class="glass-range">
+                </div>
+                <div class="setting-item">
+                    <label>Grid Snap</label>
+                    <input type="checkbox" checked>
+                </div>
+                <div class="setting-item"
+                    style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+                    <label>Database</label>
+                    <button id="export-excel-btn" class="btn-text" style="color: var(--primary);">
+                        <i class="fa-solid fa-file-excel"></i> Export User Registry
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary close-modal">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT VALUE MODAL -->
+    <div id="edit-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h3>Edit Component</h3>
+                <button class="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="component-preview-large">
+                    <i id="edit-icon" class="fa-solid fa-microchip"></i>
+                    <h4 id="edit-name">Component Name</h4>
+                </div>
+
+                <div class="input-group">
+                    <label id="edit-label">Value</label>
+                    <input type="text" id="edit-value">
+                    <span id="edit-unit" class="unit-badge">Ω</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="save-value-btn" class="btn-primary">Update Component</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTEXT MENU -->
+    <div id="context-menu" class="context-menu hidden">
+        <ul>
+            <li id="ctx-delete"><i class="fa-solid fa-trash"></i> Delete Component</li>
+        </ul>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
