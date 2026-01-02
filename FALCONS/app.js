@@ -1037,6 +1037,11 @@ function solveCircuit() {
     const numVS = voltageSources.length;
     const matrixSize = numNets + numVS;
 
+    if (matrixSize === 0) {
+        console.warn("Solver: Matrix empty (No nets or sources).");
+        return;
+    }
+
     // Helpers
     const getNetId = (compId, nodeId) => {
         return nets.findIndex(n => n.some(node => node.compId === compId && node.nodeId === nodeId));
@@ -1274,7 +1279,7 @@ voltageSources.forEach((comp, idx) => {
 // Be careful not to make matrix singular if Ground is connected to source.
 // Instead of row replace, let's just add G[gnd][gnd] += 1e9 (Big conductance to ground).
 // This is "soft grounding" but numerically stable.
-if (gndNetIdx !== -1) {
+if (gndNetIdx !== -1 && gndNetIdx < matrixSize) {
     G[gndNetIdx][gndNetIdx] += 1e6; // Conductance to abstract 0V reference
     // I[gndNetIdx] += 0;
 }
@@ -1375,6 +1380,13 @@ if (saveValueBtn) {
 if (runBtn) {
     runBtn.addEventListener('click', () => {
         console.log("Run button clicked");
+
+        // Prevent running empty circuits
+        if (circuitComponents.length === 0) {
+            showToast("Circuit is empty! Add components first.", "warning");
+            return;
+        }
+
         // Validate but don't block
         if (!validateCircuit()) {
             // Optional: Decide if we want to block or just warn. 
