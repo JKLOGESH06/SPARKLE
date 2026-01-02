@@ -1012,7 +1012,7 @@ function solveCircuit() {
     circuitComponents.forEach(comp => {
         ['L', 'R'].forEach(nodeId => {
             const net = getNet(comp.id, nodeId);
-            if (net) nets.push(net);
+            if (Array.isArray(net)) nets.push(net); // Strict check
         });
     });
 
@@ -1379,37 +1379,44 @@ if (saveValueBtn) {
 
 if (runBtn) {
     runBtn.addEventListener('click', () => {
-        console.log("Run button clicked");
-
-        // Prevent running empty circuits
-        if (circuitComponents.length === 0) {
-            showToast("Circuit is empty! Add components first.", "warning");
-            return;
-        }
-
-        // Validate but don't block
-        if (!validateCircuit()) {
-            // Optional: Decide if we want to block or just warn. 
-            // Logic in validateCircuit deals with the toast.
-            // Let's allow running even if partial, for better UX.
-        }
-
-        // Force run
         try {
+            console.log("Run button clicked");
+
+            // Prevent running empty circuits
+            if (!circuitComponents || circuitComponents.length === 0) {
+                showToast("Circuit is empty! Add components first.", "warning");
+                return;
+            }
+
+            // Validate but don't block
+            if (!validateCircuit()) {
+                // Warning handled in validateCircuit
+            }
+
             console.log("Starting simulation...");
             isRunning = true;
             runBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
-            showToast("Simulation Started", "success");
+
+            // Draw wires first
             drawWires();
+
+            // Solve - Pass 1 Check
+            if (typeof solveCircuit !== 'function') throw new Error("solveCircuit function missing");
             solveCircuit();
+
             document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = '#00f2ea');
+            showToast("Simulation Started", "success");
+
         } catch (err) {
-            console.error(err);
-            alert("Simulation Error: " + err.message + "\nCheck console for details.");
+            console.error("CRITICAL SIMULATION ERROR:", err);
+            alert("Simulation Error:\n" + err.name + ": " + err.message + "\n\nSee console for details.");
+
+            // Reset State
             isRunning = false;
             runBtn.classList.remove('hidden');
             stopBtn.classList.add('hidden');
+            document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = 'currentColor');
         }
     });
 }
