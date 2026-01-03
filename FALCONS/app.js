@@ -103,7 +103,18 @@ const componentsDB = [
     { id: 'pdio', name: "Photo-diode", type: "sensor", value: 0, unit: "lx", icon: "fa-eye" },
     { id: 'nth', name: "Thermistor (NTC)", type: "sensor", value: 10, unit: "kΩ", icon: "fa-temperature-low" },
     { id: 'cell', name: "Cell (1.5V)", type: "source", value: 1.5, unit: "V", icon: "fa-battery-quarter" },
-    { id: 'trim', name: "Bourns Trimpot 10k", type: "passive", value: 10, unit: "kΩ", icon: "fa-square-caret-down" }
+    { id: 'trim', name: "Bourns Trimpot 10k", type: "passive", value: 10, unit: "kΩ", icon: "fa-square-caret-down" },
+
+    // Phase 4 Additions (User Requested)
+    { id: 'esp32', name: "ESP32 Dev Module", type: "active", value: 0, unit: "", icon: "fa-microchip" },
+    { id: 'uno', name: "Arduino Uno", type: "active", value: 0, unit: "", icon: "fa-microchip" },
+    { id: 'nano', name: "Arduino Nano", type: "active", value: 0, unit: "", icon: "fa-microchip" },
+    { id: 'mega', name: "Arduino Mega", type: "active", value: 0, unit: "", icon: "fa-microchip" },
+    { id: 'atsha', name: "ATSHA204A Crypto", type: "active", value: 0, unit: "", icon: "fa-key" },
+    { id: 'p_amp', name: "RF Power Amp", type: "active", value: 0, unit: "dB", icon: "fa-wifi" },
+    { id: 'ant_433', name: "433 MHz Antenna", type: "output", value: 0, unit: "", icon: "fa-tower-broadcast" },
+    { id: 'oled', name: "OLED Display", type: "output", value: 0, unit: "", icon: "fa-display" },
+    { id: 'max3014', name: "MAX3014 Codec", type: "active", value: 0, unit: "", icon: "fa-headphones" }
 ];
 
 // Helper to generate Module SVG
@@ -204,7 +215,36 @@ const svgIcons = {
     'trim': `<rect x="15" y="5" width="30" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
              <circle cx="40" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
              <line x1="38" y1="10" x2="42" y2="10" stroke="currentColor" stroke-width="1"/>
-             <path d="M0,20 L15,20 M45,20 L60,20" stroke="currentColor" stroke-width="2"/>`
+             <path d="M0,20 L15,20 M45,20 L60,20" stroke="currentColor" stroke-width="2"/>`,
+
+    // Phase 4 Icons
+    'esp32': `<rect x="10" y="5" width="40" height="30" rx="2" fill="#333" stroke="currentColor" stroke-width="2"/>
+              <rect x="22" y="10" width="16" height="16" rx="1" fill="#666"/>
+              <circle cx="53" cy="8" r="1" fill="currentColor"/> <circle cx="53" cy="32" r="1" fill="currentColor"/>
+              <text x="30" y="32" text-anchor="middle" fill="#fff" font-size="6" font-family="monospace">ESP32</text>`,
+    'uno': `<rect x="5" y="5" width="50" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+            <rect x="45" y="8" width="8" height="24" fill="none" stroke="currentColor" stroke-width="1"/>
+            <text x="25" y="24" text-anchor="middle" fill="currentColor" font-size="8" font-weight="bold">UNO</text>`,
+    'nano': `<rect x="10" y="5" width="40" height="30" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>
+             <circle cx="15" cy="20" r="2" fill="currentColor"/>
+             <text x="32" y="24" text-anchor="middle" fill="currentColor" font-size="6">NANO</text>`,
+    'mega': `<rect x="5" y="2" width="50" height="36" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+             <rect x="10" y="10" width="10" height="10" transform="rotate(45 15 15)" fill="none" stroke="currentColor"/>
+             <text x="35" y="24" text-anchor="middle" fill="currentColor" font-size="8">MEGA</text>`,
+    'atsha': `<rect x="15" y="5" width="30" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+              <text x="30" y="20" text-anchor="middle" fill="currentColor" font-size="6">CRYPTO</text>
+              <path d="M25,25 L35,25 L35,30 M30,22 L30,25" stroke="currentColor" stroke-width="1.5"/>`,
+    'p_amp': `<path d="M10,30 L10,10 L45,20 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+              <path d="M45,20 L55,20 M5,20 L10,20" stroke="currentColor" stroke-width="2"/>
+              <text x="22" y="23" fill="currentColor" font-size="8" font-weight="bold">PA</text>`,
+    'ant_433': `<path d="M30,35 L30,20 M30,20 L20,5 M30,20 L40,5 M30,20 L30,5" stroke="currentColor" stroke-width="2"/>
+                <path d="M20,5 Q30,0 40,5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2,2"/>`,
+    'oled': `<rect x="5" y="5" width="50" height="30" rx="2" fill="#000" stroke="currentColor" stroke-width="2"/>
+             <rect x="8" y="8" width="44" height="24" fill="#0af" opacity="0.2"/>
+             <text x="28" y="24" text-anchor="middle" fill="#0af" font-size="8">OLED</text>`,
+    'max3014': `<rect x="12" y="5" width="36" height="30" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="M12,12 L5,12 M54,12 L48,12 M12,28 L5,28 M54,28 L48,28" stroke="currentColor" stroke-width="1.5"/>
+                <text x="30" y="22" text-anchor="middle" fill="currentColor" font-size="7">CODEC</text>`
 };
 
 let circuitComponents = [];
