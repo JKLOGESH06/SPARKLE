@@ -217,20 +217,49 @@ const svgIcons = {
              <line x1="38" y1="10" x2="42" y2="10" stroke="currentColor" stroke-width="1"/>
              <path d="M0,20 L15,20 M45,20 L60,20" stroke="currentColor" stroke-width="2"/>`,
 
-    // Phase 4 Icons
-    'esp32': `<rect x="10" y="5" width="40" height="30" rx="2" fill="#333" stroke="currentColor" stroke-width="2"/>
-              <rect x="22" y="10" width="16" height="16" rx="1" fill="#666"/>
-              <circle cx="53" cy="8" r="1" fill="currentColor"/> <circle cx="53" cy="32" r="1" fill="currentColor"/>
-              <text x="30" y="32" text-anchor="middle" fill="#fff" font-size="6" font-family="monospace">ESP32</text>`,
-    'uno': `<rect x="5" y="5" width="50" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-            <rect x="45" y="8" width="8" height="24" fill="none" stroke="currentColor" stroke-width="1"/>
-            <text x="25" y="24" text-anchor="middle" fill="currentColor" font-size="8" font-weight="bold">UNO</text>`,
-    'nano': `<rect x="10" y="5" width="40" height="30" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>
-             <circle cx="15" cy="20" r="2" fill="currentColor"/>
-             <text x="32" y="24" text-anchor="middle" fill="currentColor" font-size="6">NANO</text>`,
-    'mega': `<rect x="5" y="2" width="50" height="36" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-             <rect x="10" y="10" width="10" height="10" transform="rotate(45 15 15)" fill="none" stroke="currentColor"/>
-             <text x="35" y="24" text-anchor="middle" fill="currentColor" font-size="8">MEGA</text>`,
+    // Phase 4 Icons - Enhanced Visuals
+    'esp32': `<rect x="5" y="2" width="50" height="36" rx="2" fill="#1a1a1a" stroke="#000" stroke-width="1"/>
+              <!-- Shield -->
+              <rect x="15" y="5" width="30" height="22" rx="1" fill="#ccc" stroke="#999"/>
+              <text x="30" y="18" text-anchor="middle" fill="#666" font-size="5" font-family="monospace" font-weight="bold">ESP-WROOM</text>
+              <!-- Pins -->
+              <path d="M5,5 L5,35 M55,5 L55,35" stroke="#d4af37" stroke-width="2" stroke-dasharray="1,2"/>
+              <!-- USB & Buttons -->
+              <rect x="20" y="34" width="10" height="4" fill="#silver"/>
+              <circle cx="12" cy="34" r="1.5" fill="#333" stroke="#666"/>
+              <circle cx="48" cy="34" r="1.5" fill="#333" stroke="#666"/>`,
+
+    'uno': `<rect x="2" y="2" width="56" height="36" rx="2" fill="#008CBA" stroke="#005f7f" stroke-width="1"/>
+            <!-- Connectors -->
+            <rect x="0" y="6" width="10" height="10" fill="#silver" stroke="#666"/> <!-- USB -->
+            <rect x="2" y="24" width="8" height="10" fill="#111"/> <!-- DC Jack -->
+            <!-- Headers -->
+            <rect x="14" y="2" width="38" height="4" fill="#222"/>
+            <rect x="14" y="34" width="38" height="4" fill="#222"/>
+             <!-- Chip -->
+             <rect x="25" y="18" width="24" height="6" fill="#111" stroke="#333"/>
+             <text x="30" y="28" fill="#fff" font-size="6" font-weight="bold">UNO</text>
+             <circle cx="52" cy="30" r="1.5" fill="#fff" opacity="0.5"/>`,
+
+    'nano': `<rect x="10" y="5" width="40" height="30" rx="1" fill="#004080" stroke="#002040" stroke-width="1"/>
+             <!-- USB -->
+             <rect x="8" y="12" width="6" height="6" fill="#silver" stroke="#666"/>
+             <!-- Chip -->
+             <rect x="25" y="15" width="10" height="10" transform="rotate(45 30 20)" fill="#111"/>
+             <!-- Pins -->
+             <path d="M12,5 L48,5 M12,35 L48,35" stroke="#d4af37" stroke-width="2" stroke-dasharray="1,2"/>
+             <text x="36" y="28" text-anchor="middle" fill="#fff" font-size="4" font-weight="bold">NANO</text>`,
+
+    'mega': `<rect x="2" y="2" width="56" height="36" rx="1" fill="#007acc" stroke="#005c99" stroke-width="1"/>
+             <!-- Long Headers -->
+             <rect x="54" y="5" width="4" height="30" fill="#222"/>
+             <rect x="15" y="2" width="35" height="3" fill="#222"/>
+             <rect x="15" y="35" width="35" height="3" fill="#222"/>
+             <!-- USB -->
+             <rect x="0" y="8" width="8" height="8" fill="#silver"/>
+             <!-- Chip -->
+             <rect x="28" y="14" width="12" height="12" transform="rotate(45 34 20)" fill="#111"/>
+             <text x="44" y="30" fill="#fff" font-size="5" font-weight="bold">MEGA</text>`,
     'atsha': `<rect x="15" y="5" width="30" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
               <text x="30" y="20" text-anchor="middle" fill="currentColor" font-size="6">CRYPTO</text>
               <path d="M25,25 L35,25 L35,30 M30,22 L30,25" stroke="currentColor" stroke-width="1.5"/>`,
