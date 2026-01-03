@@ -10,7 +10,12 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+try {
+    firebase.initializeApp(firebaseConfig);
+    console.log("Firebase Initialized Successfully");
+} catch (e) {
+    console.error("Firebase Init Failed:", e);
+}
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -374,7 +379,9 @@ if (authBtn) {
 
 // Login Form Submit
 if (loginForm) {
+    console.log("Login Form Found, attaching listener.");
     loginForm.addEventListener('submit', (e) => {
+        console.log("Form Submitted! Preventing Default.");
         e.preventDefault();
         const email = document.getElementById('username').value;
         const password = document.getElementById('password').value;
@@ -1625,4 +1632,11 @@ if (componentSearch) {
 
 const cloudSaveBtn = document.getElementById('cloud-save-btn');
 const cloudLoadBtn = document.getElementById('cloud-load-btn');
-```
+
+if (cloudSaveBtn) {
+    cloudSaveBtn.addEventListener('click', saveCircuitToCloud);
+}
+
+if (cloudLoadBtn) {
+    cloudLoadBtn.addEventListener('click', loadCircuitFromCloud);
+}
