@@ -373,6 +373,82 @@ const pinLayouts = {
     }
 };
 
+// Pin Layout Generatort
+function getPinLayout(compDef) {
+    // 1. Explicit Custom Layouts (MCUs)
+    if (pinLayouts[compDef.id]) return pinLayouts[compDef.id];
+
+    // 2. Transistors (3-Pin)
+    if (['bjt', 'pnp', 'mos', 'pmos', 'jfet'].includes(compDef.id)) {
+        return {
+            width: 60, height: 60,
+            pins: [
+                { id: 'C', x: 30, y: 5 },  // Collector / Drain
+                { id: 'B', x: 5, y: 30 },  // Base / Gate
+                { id: 'E', x: 30, y: 55 }  // Emitter / Source
+            ]
+        };
+    }
+
+    // 3. Sensors/Modules (3-Pin or 4-Pin) usually bottom row
+    if (compDef.type === 'sensor' && !compDef.custom) {
+        // Generic 3-pin Sensor
+        return {
+            width: 60, height: 50,
+            pins: [
+                { id: 'VCC', x: 10, y: 45 },
+                { id: 'OUT', x: 30, y: 45 },
+                { id: 'GND', x: 50, y: 45 }
+            ]
+        };
+    }
+
+    // 4. ICs (Logic Gates - 2 In, 1 Out)
+    if (['nand', 'nor', 'xor'].includes(compDef.id)) {
+        return {
+            width: 60, height: 40,
+            pins: [
+                { id: 'A', x: 0, y: 10 },
+                { id: 'B', x: 0, y: 30 },
+                { id: 'Q', x: 60, y: 20 }
+            ]
+        };
+    }
+
+    // 5. Standard 2-Pin (Res, Cap, LED, etc.)
+    // We map them to specific coordinates instead of CSS classes
+    return {
+        width: 60, height: 40,
+        pins: [
+            { id: 'L', x: 0, y: 20 },
+            { id: 'R', x: 60, y: 20 }
+        ]
+    };
+}
+
+// Inject Styles for Big Pins
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+    .node {
+        width: 12px !important;
+        height: 12px !important;
+        background: #ffaa00 !important; /* Orange to stand out */
+        border: 2px solid #000;
+        z-index: 100 !important;
+        transform: translate(-50%, -50%); /* Center on coordinate */
+    }
+    .node:hover {
+        transform: translate(-50%, -50%) scale(1.3);
+        background: #fff !important;
+        box-shadow: 0 0 10px #ffaa00;
+    }
+    /* Hide old node-left/node-right default positioning since we use explicit top/left now */
+    .component-2d .node-left, .component-2d .node-right {
+        position: absolute; 
+    }
+`;
+document.head.appendChild(styleSheet);
+
 let editingComponentId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -954,15 +1030,10 @@ function addComponentToCanvas(compDef, x, y) {
     const el = document.createElement('div');
     el.className = 'circuit-component component-2d';
 
-    // Custom Layout or Standard
-    if (pinLayouts[compDef.id]) {
-        const layout = pinLayouts[compDef.id];
-        compData.width = layout.width;
-        compData.height = layout.height;
-    } else {
-        compData.width = 60;
-        compData.height = 40;
-    }
+    // Get Layout (Generic or Custom)
+    const layout = getPinLayout(compDef);
+    compData.width = layout.width;
+    compData.height = layout.height;
 
     el.id = `comp-${id}`;
     el.style.left = `${x}px`;
@@ -972,23 +1043,19 @@ function addComponentToCanvas(compDef, x, y) {
 
     const svgPath = svgIcons[compDef.id] || svgIcons['res'];
 
-    // Render Nodes (Custom or Standard 2)
+    // Render Nodes Loop
     let nodesHTML = '';
-    if (pinLayouts[compDef.id]) {
-        pinLayouts[compDef.id].pins.forEach(pin => {
-            nodesHTML += `<div class="node custom-node" data-node="${pin.id}" 
-                style="left: ${pin.x}px; top: ${pin.y}px;" 
-                title="${pin.id}"></div>`;
-        });
-    } else {
-        nodesHTML = `
-           <div class="node node-left" data-node="L"></div>
-           <div class="node node-right" data-node="R"></div>`;
-    }
+    layout.pins.forEach(pin => {
+        // For standard components, map 'L' and 'R' to their visual positions
+        // The getPinLayout function already handles coordinate definition
+        nodesHTML += `<div class="node" data-node="${pin.id}" 
+            style="left: ${pin.x}px; top: ${pin.y}px;" 
+            title="${pin.id}"></div>`;
+    });
 
     el.innerHTML = `
         ${nodesHTML}
-        // Scale SVG to fit new bounds if custom
+        // Scale SVG to fit
         <svg class="comp-svg" width="${compData.width}" height="${compData.height}" 
              viewBox="0 0 ${compData.width} ${compData.height}" preserveAspectRatio="none">${svgPath}</svg>
         <div class="comp-label" style="top: ${compData.height + 2}px"><span class="name">${compData.name}</span><span class="val-badge">${compData.value}${compData.unit}</span></div>`;
@@ -1006,51 +1073,23 @@ function drawWires() {
     const getPos = (compId, nodeId) => {
         const comp = circuitComponents.find(c => c.id === compId); if (!comp) return { x: 0, y: 0 };
 
-        // Custom Layout Node Position
-        if (pinLayouts[comp.defId]) {
-            const layout = pinLayouts[comp.defId];
-            const pin = layout.pins.find(p => p.id === nodeId);
-            if (pin) {
-                // Apply rotation transform logic if needed, but for now simple offset
-                // Simplification: Assume no rotation for complex boards for now or handle it later
-                /* 
-                  Rotation Logic x,y relative to center (w/2, h/2)
-                */
-                const cx = layout.width / 2;
-                const cy = layout.height / 2;
-                const dx = pin.x - cx;
-                const dy = pin.y - cy;
-                const rad = (comp.rotation || 0) * (Math.PI / 180);
-                const rdx = dx * Math.cos(rad) - dy * Math.sin(rad);
-                const rdy = dx * Math.sin(rad) + dy * Math.cos(rad);
-                return { x: comp.x + cx + rdx, y: comp.y + cy + rdy };
-            }
+        // Universal Lookup via Layout System
+        const compDef = componentsDB.find(c => c.id === comp.defId) || { id: 'res' };
+        const layout = getPinLayout(compDef);
+        const pin = layout.pins.find(p => p.id === nodeId);
+
+        if (pin) {
+            const cx = layout.width / 2;
+            const cy = layout.height / 2;
+            const dx = pin.x - cx;
+            const dy = pin.y - cy; // Relative to center
+
+            const rad = (comp.rotation || 0) * (Math.PI / 180);
+            const rdx = dx * Math.cos(rad) - dy * Math.sin(rad);
+            const rdy = dx * Math.sin(rad) + dy * Math.cos(rad);
+            return { x: comp.x + cx + rdx, y: comp.y + cy + rdy };
         }
-
-        // Standard 2-Node
-        const cx = 40; const cy = 30; // 30 is center of 60? No 40x30, width=60 height=40 (center 30,20)
-        // Wait, original hardcoded cx=40 implies width 80? But CSS says 60.
-        // Let's stick to safe defaults. Original code: cx=40 (center X relative to component?)
-        // Standard comp 60x40. Center is 30,20. 
-        // Original code: cx=40, cy=30. (Maybe 80x60 bbox?)
-        // Let's rely on simple offsets if rotation is 0, else generic
-
-        // Just use original logic for compatibility
-        let lx = (nodeId === 'L') ? 9 : 71; // 9 and 71... seems wider than 60. Maybe SVG is 80 wide?
-        let ly = 24; // Center Y approx
-
-        // Re-align with 60x40 standard:
-        // L node at -something?
-        // Let's trust the previous math worked for existing comps
-        const rad = (comp.rotation || 0) * (Math.PI / 180);
-        // Recalc relative to top-left comp.x, comp.y
-        // The original logic seemed to assume a center based transformation
-        // Let's keep it exactly as it was for standard components:
-        const o_cx = 40; const o_cy = 30; // "Center" for rotation anchor
-        const dx = lx - o_cx; const dy = ly - o_cy;
-        const rdx = dx * Math.cos(rad) - dy * Math.sin(rad);
-        const rdy = dx * Math.sin(rad) + dy * Math.cos(rad);
-        return { x: comp.x + o_cx + rdx, y: comp.y + o_cy + rdy };
+        return { x: comp.x, y: comp.y }; // Fallback
     };
 
     // Draw Completed Wires
@@ -1238,17 +1277,12 @@ function solveCircuit() {
 
     // Map all nodes to nets
     circuitComponents.forEach(comp => {
-        if (pinLayouts[comp.defId]) {
-            pinLayouts[comp.defId].pins.forEach(pin => {
-                const net = getNet(comp.id, pin.id);
-                if (Array.isArray(net)) nets.push(net);
-            });
-        } else {
-            ['L', 'R'].forEach(nodeId => {
-                const net = getNet(comp.id, nodeId);
-                if (Array.isArray(net)) nets.push(net); // Strict check
-            });
-        }
+        const compDef = componentsDB.find(c => c.id === comp.defId) || { id: 'res' };
+        const layout = getPinLayout(compDef);
+        layout.pins.forEach(pin => {
+            const net = getNet(comp.id, pin.id);
+            if (Array.isArray(net)) nets.push(net);
+        });
     });
 
     // Determine Ground Net
