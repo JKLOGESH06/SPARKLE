@@ -771,8 +771,15 @@ function setupCanvasInteractions() {
     };
 
     const handleUp = (e) => {
+        // Waypoint Logic: If released on board (not node), add a waypoint
         if (currentWireStart && !e.target.classList.contains('node')) {
-            currentWireStart = null; tempWireEnd = null; drawWires();
+            if (tempWireEnd) {
+                if (!currentWireStart.waypoints) currentWireStart.waypoints = [];
+                // Add current cursor position as waypoint
+                currentWireStart.waypoints.push({ x: tempWireEnd.x, y: tempWireEnd.y });
+            }
+            // Do NOT clear currentWireStart. User continues drawing from this waypoint.
+            drawWires();
         }
     };
 
@@ -839,59 +846,82 @@ function addComponentToCanvas(compDef, x, y) {
     addToHistory({ type: 'ADD', data: compData });
 }
 
+// Updated drawWires to support Waypoints
 function drawWires() {
     wiresLayer.innerHTML = '';
     const getPos = (compId, nodeId) => {
         const comp = circuitComponents.find(c => c.id === compId); if (!comp) return { x: 0, y: 0 };
-
-        // Pivot is center of 80x60 component relative to x,y
-        // Actually visual SVG is 60x40 centered in 80x60 div?
-        // Let's check style.css: .circuit-component width 80, height 60.
-        // Node offsets from top-left of component div:
-        // Left Node: left: 5px, top: 20px
-        // Right Node: right: 5px (75px), top: 20px
-        // Center of rotation: 40px, 30px (midpoint of 80x60)
-
-        const cx = 40;
-        const cy = 30;
-
-        // Unrotated coords relative to component top-left
-        let lx = (nodeId === 'L') ? 9 : 71; // 5 + 4(radius) = 9
-        let ly = 24; // 20 + 4(radius) = 24
-
-        // Apply Rotation
+        const cx = 40; const cy = 30;
+        let lx = (nodeId === 'L') ? 9 : 71;
+        let ly = 24;
         const rad = (comp.rotation || 0) * (Math.PI / 180);
-        const cos = Math.cos(rad);
-        const sin = Math.sin(rad);
-
-        // Translate to origin (center), rotate, translate back
-        const dx = lx - cx;
-        const dy = ly - cy;
-
+        const cos = Math.cos(rad); const sin = Math.sin(rad);
+        const dx = lx - cx; const dy = ly - cy;
         const rdx = dx * cos - dy * sin;
         const rdy = dx * sin + dy * cos;
-
-        return {
-            x: comp.x + cx + rdx,
-            y: comp.y + cy + rdy
-        };
+        return { x: comp.x + cx + rdx, y: comp.y + cy + rdy };
     };
+
+    // Draw Completed Wires
     wires.forEach(wire => {
         const p1 = getPos(wire.start.compId, wire.start.nodeId);
         const p2 = getPos(wire.end.compId, wire.end.nodeId);
+
+        let d = `M ${p1.x} ${p1.y}`;
+        if (wire.waypoints && wire.waypoints.length > 0) {
+            wire.waypoints.forEach(wp => {
+                d += ` L ${wp.x} ${wp.y}`;
+            });
+        }
+        d += ` L ${p2.x} ${p2.y}`;
+
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
-        path.setAttribute('d', d); path.setAttribute('stroke', isRunning ? '#00f2ea' : '#888');
-        path.setAttribute('stroke-width', isRunning ? '3' : '2'); path.setAttribute('fill', 'none');
+        path.setAttribute('d', d);
+        path.setAttribute('stroke', isRunning ? '#00f2ea' : '#888');
+        path.setAttribute('stroke-width', isRunning ? '3' : '2');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-linejoin', 'round');
+        path.setAttribute('stroke-linecap', 'round');
+
         if (isRunning) path.classList.add('active');
         wiresLayer.appendChild(path);
+
+        // Draw Waypoint dots for visibility (optional, but helpful for debugging/visuals)
+        if (wire.waypoints) {
+            wire.waypoints.forEach(wp => {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', wp.x); circle.setAttribute('cy', wp.y);
+                circle.setAttribute('r', '2'); circle.setAttribute('fill', '#888');
+                wiresLayer.appendChild(circle);
+            });
+        }
     });
+
+    // Draw Active Drawing Wire
     if (currentWireStart && tempWireEnd) {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', currentWireStart.x); line.setAttribute('y1', currentWireStart.y);
-        line.setAttribute('x2', tempWireEnd.x); line.setAttribute('y2', tempWireEnd.y);
-        line.setAttribute('stroke', '#fff'); line.setAttribute('stroke-dasharray', '5,5');
-        wiresLayer.appendChild(line);
+        const pStart = currentWireStart; // Has x,y from initial click
+        // But better to re-calculate from component in case it moved? 
+        // No, you can't move components while drawing wires usually.
+
+        let d = `M ${pStart.x} ${pStart.y}`;
+
+        // Draw confirmed waypoints
+        if (currentWireStart.waypoints && currentWireStart.waypoints.length > 0) {
+            currentWireStart.waypoints.forEach(wp => {
+                d += ` L ${wp.x} ${wp.y}`;
+            });
+        }
+
+        // Draw line to current cursor
+        d += ` L ${tempWireEnd.x} ${tempWireEnd.y}`;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('stroke', '#fff');
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-dasharray', '5,5');
+        wiresLayer.appendChild(path);
     }
 }
 
@@ -1417,8 +1447,17 @@ function rotateComponent(id) {
     drawWires();
 }
 
-// Global Key Listener for Rotation
+// Global Key Listener for Rotation and Cancellation
 document.addEventListener('keydown', (e) => {
+    // Escape to cancel wire
+    if (e.key === 'Escape' && currentWireStart) {
+        currentWireStart = null;
+        tempWireEnd = null;
+        drawWires();
+        // showToast("Wire cancelled", "info"); // Optional feedback
+        return;
+    }
+
     // Ignore if typing in input fields
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
 
@@ -1548,7 +1587,11 @@ function attachComponentInteractions(el, compData) {
             const centerY = (rect.top + rect.height / 2 - boardRect.top) / zoomLevel;
             if (!currentWireStart) { currentWireStart = { compId: compData.id, nodeId: node.dataset.node, x: centerX, y: centerY }; }
             else if (currentWireStart.compId !== compData.id || currentWireStart.nodeId !== node.dataset.node) {
-                const newWire = { start: { ...currentWireStart }, end: { compId: compData.id, nodeId: node.dataset.node, x: centerX, y: centerY } };
+                const newWire = {
+                    start: { ...currentWireStart },
+                    end: { compId: compData.id, nodeId: node.dataset.node, x: centerX, y: centerY },
+                    waypoints: currentWireStart.waypoints ? [...currentWireStart.waypoints] : []
+                };
                 wires.push(newWire);
                 addToHistory({ type: 'WIRE', data: { wire: newWire } });
                 currentWireStart = null; tempWireEnd = null; drawWires();
