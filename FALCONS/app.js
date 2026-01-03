@@ -221,7 +221,6 @@ const zoomInBtn = document.getElementById('zoom-in');
 const zoomOutBtn = document.getElementById('zoom-out');
 const contextMenu = document.getElementById('context-menu');
 const ctxDelete = document.getElementById('ctx-delete');
-const ctxRotate = document.getElementById('ctx-rotate');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsModal = document.getElementById('settings-modal');
 const exportExcelBtn = document.getElementById('export-excel-btn');
@@ -638,10 +637,15 @@ function renderPalette(query = '') {
         }
     }
 
-    // If we have a query, we stop here (Only show matches)
-    if (lowQuery) return;
+    // --- FULL LIBRARY SECTION ---
+    if (lowQuery) {
+        const fullHeader = document.createElement('div');
+        fullHeader.className = 'palette-category-header';
+        fullHeader.style.opacity = '0.5';
+        fullHeader.textContent = 'All Components';
+        listContainer.appendChild(fullHeader);
+    }
 
-    // --- FULL LIBRARY SECTION (Only if no search) ---
     const categories = {
         'source': 'Power Sources',
         'passive': 'Passive Components',
@@ -660,6 +664,9 @@ function renderPalette(query = '') {
             listContainer.appendChild(header);
 
             catComps.forEach(comp => {
+                // If searching, skip the duplicate if it's already in matches
+                if (lowQuery && matches.find(m => m.id === comp.id)) return;
+
                 listContainer.appendChild(createPaletteItem(comp));
             });
         }
@@ -718,8 +725,7 @@ componentSearch.addEventListener('keypress', (e) => {
 
 // Real-time filtering remains as an option or can be disabled
 componentSearch.addEventListener('input', (e) => {
-    // Always render, even if empty (which resets to full list)
-    renderPalette(e.target.value);
+    if (e.target.value === '') renderPalette();
 });
 
 
@@ -789,9 +795,6 @@ function updateZoom(delta) {
 function setupContextMenu() {
     document.addEventListener('click', () => { contextMenu.classList.add('hidden'); contextMenuTargetId = null; });
     ctxDelete.addEventListener('click', () => { if (contextMenuTargetId !== null) { deleteComponent(contextMenuTargetId); contextMenu.classList.add('hidden'); } });
-    if (ctxRotate) {
-        ctxRotate.addEventListener('click', () => { if (contextMenuTargetId !== null) { rotateComponent(contextMenuTargetId); contextMenu.classList.add('hidden'); } });
-    }
     circuitBoard.addEventListener('contextmenu', (e) => { e.preventDefault(); });
 }
 
@@ -813,7 +816,7 @@ function deleteComponent(id, recordHistory = true) {
 
 function addComponentToCanvas(compDef, x, y) {
     const id = nextId++;
-    const compData = { id: id, defId: compDef.id, name: compDef.name, value: compDef.value, unit: compDef.unit, x: x, y: y, rotation: 0 };
+    const compData = { id: id, defId: compDef.id, name: compDef.name, value: compDef.value, unit: compDef.unit, x: x, y: y };
     circuitComponents.push(compData);
 
     const el = document.createElement('div');
@@ -839,38 +842,7 @@ function drawWires() {
     wiresLayer.innerHTML = '';
     const getPos = (compId, nodeId) => {
         const comp = circuitComponents.find(c => c.id === compId); if (!comp) return { x: 0, y: 0 };
-
-        // Pivot is center of 80x60 component relative to x,y
-        // Actually visual SVG is 60x40 centered in 80x60 div?
-        // Let's check style.css: .circuit-component width 80, height 60.
-        // Node offsets from top-left of component div:
-        // Left Node: left: 5px, top: 20px
-        // Right Node: right: 5px (75px), top: 20px
-        // Center of rotation: 40px, 30px (midpoint of 80x60)
-
-        const cx = 40;
-        const cy = 30;
-
-        // Unrotated coords relative to component top-left
-        let lx = (nodeId === 'L') ? 9 : 71; // 5 + 4(radius) = 9
-        let ly = 24; // 20 + 4(radius) = 24
-
-        // Apply Rotation
-        const rad = (comp.rotation || 0) * (Math.PI / 180);
-        const cos = Math.cos(rad);
-        const sin = Math.sin(rad);
-
-        // Translate to origin (center), rotate, translate back
-        const dx = lx - cx;
-        const dy = ly - cy;
-
-        const rdx = dx * cos - dy * sin;
-        const rdy = dx * sin + dy * cos;
-
-        return {
-            x: comp.x + cx + rdx,
-            y: comp.y + cy + rdy
-        };
+        let y = comp.y + 30; let x = comp.x; if (nodeId === 'R') x += 80; return { x, y };
     };
     wires.forEach(wire => {
         const p1 = getPos(wire.start.compId, wire.start.nodeId);
@@ -922,65 +894,19 @@ function validateCircuit() {
     });
 
     if (!isValid) {
-        showToast("Warning: Open circuit pins detected. Simulation continues.", "warning");
+        showToast("Connection Error: Open circuit detected. Please connect all component pins.");
     }
 
-    return true; // Allow running anyway
-}
-
-// --- MNA Solver & Math Helpers ---
-
-function solveLinearSystem(A, b) {
-    // Gaussian Elimination with Partial Pivoting
-    const n = A.length;
-
-    for (let i = 0; i < n; i++) {
-        // Pivot
-        let maxRow = i;
-        for (let k = i + 1; k < n; k++) {
-            if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) maxRow = k;
-        }
-
-        // Swap rows in A and b
-        [A[i], A[maxRow]] = [A[maxRow], A[i]];
-        [b[i], b[maxRow]] = [b[maxRow], b[i]];
-
-        // Eliminate
-        if (Math.abs(A[i][i]) < 1e-10) continue; // Singular or nearly singular
-
-        for (let k = i + 1; k < n; k++) {
-            const factor = A[k][i] / A[i][i];
-            b[k] -= factor * b[i];
-            for (let j = i; j < n; j++) {
-                A[k][j] -= factor * A[i][j];
-            }
-        }
-    }
-
-    // Back Substitution
-    const x = new Array(n).fill(0);
-    for (let i = n - 1; i >= 0; i--) {
-        if (Math.abs(A[i][i]) < 1e-10) continue;
-        let sum = 0;
-        for (let j = i + 1; j < n; j++) {
-            sum += A[i][j] * x[j];
-        }
-        x[i] = (b[i] - sum) / A[i][i];
-    }
-
-    return x;
+    return isValid;
 }
 
 function solveCircuit() {
     if (!isRunning) return;
-    console.log("Trace: solveCircuit start");
 
     // 1. Identify Nets (Groups of connected nodes)
     const nets = [];
     const visitedNodes = new Set();
-    const nodeMap = new Map(); // Fast lookup cache
 
-    // Helper: Build Nets
     function getNet(compId, nodeId) {
         const key = `${compId}-${nodeId}`;
         if (visitedNodes.has(key)) return null;
@@ -989,16 +915,18 @@ function solveCircuit() {
         const queue = [{ compId, nodeId }];
         visitedNodes.add(key);
 
-        // Find full net
         while (queue.length > 0) {
             const current = queue.shift();
             net.push(current);
-            nodeMap.set(`${current.compId}-${current.nodeId}`, nets.length); // Optimization
 
+            // Find wires connected to this node
             wires.forEach(w => {
                 let neighbor = null;
-                if (w.start.compId === current.compId && w.start.nodeId === current.nodeId) neighbor = w.end;
-                else if (w.end.compId === current.compId && w.end.nodeId === current.nodeId) neighbor = w.start;
+                if (w.start.compId === current.compId && w.start.nodeId === current.nodeId) {
+                    neighbor = w.end;
+                } else if (w.end.compId === current.compId && w.end.nodeId === current.nodeId) {
+                    neighbor = w.start;
+                }
 
                 if (neighbor) {
                     const nKey = `${neighbor.compId}-${neighbor.nodeId}`;
@@ -1016,316 +944,147 @@ function solveCircuit() {
     circuitComponents.forEach(comp => {
         ['L', 'R'].forEach(nodeId => {
             const net = getNet(comp.id, nodeId);
-            if (Array.isArray(net)) nets.push(net); // Strict check
+            if (net) nets.push(net);
         });
     });
 
-    // Determine Ground Net
-    let gndNetIdx = -1;
+    // 2. Calculate net voltages
+    const netVoltages = new Map();
+
+    // Assign voltages from power sources  
     circuitComponents.forEach(comp => {
-        if (comp.defId === 'gnd') {
-            const netIdx = nets.findIndex(n => n.some(node => node.compId === comp.id));
-            if (netIdx !== -1) gndNetIdx = netIdx;
+        if (comp.defId === 'bat' || comp.defId === 'ps' || comp.defId === 'cell') {
+            const voltage = parseFloat(comp.value) || 0;
+            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
+            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
+
+            // Battery: Left = 0V (ground), Right = voltage value
+            if (netLIdx !== -1) netVoltages.set(netLIdx, 0);
+            if (netRIdx !== -1) netVoltages.set(netRIdx, voltage);
+        } else if (comp.defId === 'gnd') {
+            // Ground component
+            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
+            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
+            if (netLIdx !== -1) netVoltages.set(netLIdx, 0);
+            if (netRIdx !== -1) netVoltages.set(netRIdx, 0);
         }
     });
 
-    if (gndNetIdx === -1) gndNetIdx = 0; // Floating reference if needed
+    // Propagate voltages through wires (wires have zero resistance)
+    const maxIterations = 50;
+    for (let iter = 0; iter < maxIterations; iter++) {
+        let changed = false;
 
-    // Voltage Sources for Modified Nodal
-    const voltageSources = [];
-    circuitComponents.forEach(comp => {
-        if (['bat', 'ps', 'cell'].includes(comp.defId)) voltageSources.push(comp);
+        // For each wire, ensure connected nets get the same voltage
+        wires.forEach(wire => {
+            const net1Idx = nets.findIndex(n => n.some(node =>
+                node.compId === wire.start.compId && node.nodeId === wire.start.nodeId
+            ));
+            const net2Idx = nets.findIndex(n => n.some(node =>
+                node.compId === wire.end.compId && node.nodeId === wire.end.nodeId
+            ));
+
+            if (net1Idx === -1 || net2Idx === -1 || net1Idx === net2Idx) return;
+
+            const v1 = netVoltages.get(net1Idx);
+            const v2 = netVoltages.get(net2Idx);
+
+            if (v1 !== undefined && v2 === undefined) {
+                netVoltages.set(net2Idx, v1);
+                changed = true;
+            } else if (v2 !== undefined && v1 === undefined) {
+                netVoltages.set(net1Idx, v2);
+                changed = true;
+            }
+        });
+
+        // Calculate voltage drops across components
+        circuitComponents.forEach(comp => {
+            if (comp.defId === 'bat' || comp.defId === 'ps' || comp.defId === 'cell' ||
+                comp.defId === 'v_meter' || comp.defId === 'a_meter' || comp.defId === 'gnd') return;
+
+            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
+            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
+
+            if (netLIdx === -1 || netRIdx === -1) return;
+
+            const vL = netVoltages.get(netLIdx);
+            const vR = netVoltages.get(netRIdx);
+
+            if (comp.defId === 'led') {
+                const ledDrop = 2.0;
+                if (vL !== undefined && vR === undefined) {
+                    netVoltages.set(netRIdx, Math.max(0, vL - ledDrop));
+                    changed = true;
+                } else if (vR !== undefined && vL === undefined) {
+                    netVoltages.set(netLIdx, vR + ledDrop);
+                    changed = true;
+                }
+            } else if (comp.defId === 'dio') {
+                const diodeDrop = 0.7;
+                if (vL !== undefined && vR === undefined) {
+                    netVoltages.set(netRIdx, Math.max(0, vL - diodeDrop));
+                    changed = true;
+                } else if (vR !== undefined && vL === undefined) {
+                    netVoltages.set(netLIdx, vR + diodeDrop);
+                    changed = true;
+                }
+            } else if (comp.defId === 'res') {
+                if (vL !== undefined && vR === undefined) {
+                    const estimatedDrop = Math.min(vL * 0.3, vL - 0.5);
+                    netVoltages.set(netRIdx, Math.max(0, vL - estimatedDrop));
+                    changed = true;
+                } else if (vR !== undefined && vL === undefined) {
+                    const estimatedDrop = Math.min(vR * 0.3, 3.0);
+                    netVoltages.set(netLIdx, vR + estimatedDrop);
+                    changed = true;
+                }
+            }
+        });
+
+        if (!changed) break;
+    }
+
+    // Default remaining nets to 0V
+    nets.forEach((net, index) => {
+        if (!netVoltages.has(index)) {
+            netVoltages.set(index, 0);
+        }
     });
 
-    const numNets = nets.length;
-    const numVS = voltageSources.length;
-    const matrixSize = numNets + numVS;
-
-    if (matrixSize === 0) {
-        console.warn("Solver: Matrix empty (No nets or sources).");
-        return;
-    }
-
-    // Helpers
-    const getNetId = (compId, nodeId) => {
-        return nets.findIndex(n => n.some(node => node.compId === compId && node.nodeId === nodeId));
-    };
-
-    // State Persistence for Iterations (Store voltage diffs to smooth transitions)
-    // We actually just need the last solution vector to determine operating points.
-    // Initialize with 0 if not exists (or previous frame's approximation)
-    let solution = new Array(matrixSize).fill(0);
-
-    // --- NON-LINEAR ITERATION LOOP ---
-    const MAX_ITER = 10;
-    for (let iter = 0; iter < MAX_ITER; iter++) {
-
-        // Reset Matrix System
-        const G = Array.from({ length: matrixSize }, () => Array(matrixSize).fill(0));
-        const I = new Array(matrixSize).fill(0);
-
-        // -- Stamp Linear Components --
-        circuitComponents.forEach(comp => {
-            const n1 = getNetId(comp.id, 'L');
-            const n2 = getNetId(comp.id, 'R');
-            if (n1 === -1 || n2 === -1) return;
-
-            // Resistors
-            if (['res', 'pot', 'trim', 'nth'].includes(comp.defId)) {
-                let r = parseFloat(comp.value) || 1000;
-                if (comp.unit === 'kΩ') r *= 1000;
-                if (comp.unit === 'mΩ') r *= 0.001;
-                if (r < 0.001) r = 0.001;
-                const g = 1 / r;
-                G[n1][n1] += g; G[n2][n2] += g; G[n1][n2] -= g; G[n2][n1] -= g;
-            }
-
-            // Ideal Meters
-            if (comp.defId === 'v_meter') {
-                const g = 1e-9; // Very Low Conductance (1G Ohm)
-                G[n1][n1] += g; G[n2][n2] += g; G[n1][n2] -= g; G[n2][n1] -= g;
-            }
-            if (comp.defId === 'a_meter') {
-                const g = 1000; // 0.001 Ohm
-                G[n1][n1] += g; G[n2][n2] += g; G[n1][n2] -= g; G[n2][n1] -= g;
-            }
-        });
-
-        // -- Stamp Voltage Sources --
-        voltageSources.forEach((comp, idx) => {
-            const vsIdx = numNets + idx;
-            let v = parseFloat(comp.value) || 9;
-            if (comp.unit === 'mV') v *= 0.001;
-
-            const nPos = getNetId(comp.id, 'R');
-            const nNeg = getNetId(comp.id, 'L');
-
-            if (nPos !== -1) { G[vsIdx][nPos] = 1; G[nPos][vsIdx] = 1; }
-            if (nNeg !== -1) { G[vsIdx][nNeg] = -1; G[nNeg][vsIdx] = -1; }
-            I[vsIdx] = v;
-        });
-
-        // -- Ground --
-        if (gndNetIdx !== -1) {
-            G[gndNetIdx][gndNetIdx] += 1e6; // Soft Ground
-        }
-
-        // -- Stamp Non-Linear Components (Dynamic) --
-        /* 
-           Using Norton Equivalent for Diode/Zener in ON state:
-           Source I_eq in parallel with G_on.
-           V = (I_node + I_eq) / G_on
-           We want V_diff = V_fwd
-           Current I flowing from Anode->Cathode = (V_a - V_c - V_fwd) * G_on
-           KCL term at Anode: -I_diode = - (V_a - V_c)G_on + V_fwd*G_on
-           KCL term at Cathode: +I_diode = + (V_a - V_c)G_on - V_fwd*G_on
-           
-           So:
-           Add G_on to Matrix (Like resistor).
-           Add constant current J = V_fwd * G_on to Vector.
-               - Inflow to Anode node (Positive Index)? No, KCL sum I = 0.
-               - Ix = GxV - J... 
-               - I_leaving_anode = (Va - Vc - Vf)*G
-                                 = (Va - Vc)G - Vf*G
-               - Matrix row for Anode (Sum currents = 0):
-                 ... + (Va - Vc)G ...  = ... + Vf*G
-               - So Add +Vf*G to Anode RHS (I vector).
-               - Add -Vf*G to Cathode RHS (I vector).
-        */
-
-        circuitComponents.forEach(comp => {
-            if (!['led', 'dio', 'zen', 'sch'].includes(comp.defId)) return;
-
-            const nA = getNetId(comp.id, 'L'); // Anode (Left?) - Wait, icons suggest Triangle points right aka L inputs, R outputs?
-            // Standard schematic: Current flows Left to Right usually.
-            // Let's assume Left=Anode, Right=Cathode for standard icons.
-            const nC = getNetId(comp.id, 'R');
-
-            if (nA === -1 || nC === -1) return;
-
-            // Get current estimates
-            const vA = solution[nA] || 0;
-            const vC = solution[nC] || 0;
-            const vDiff = vA - vC;
-
-            // Parameters
-            let vFwd = 0.7; // Standard Diode/Zener Fwd
-            let vRev = 0;   // Breakdown voltage (Positive Value)
-
-            if (comp.defId === 'led') vFwd = 2.0;
-            if (comp.defId === 'sch') vFwd = 0.3;
-            if (comp.defId === 'zen') vRev = parseFloat(comp.value) || 5.1; // Zener Value
-
-            const gOff = 1e-9;
-            const gOn = 10; // 0.1 Ohm ON resistance
-
-            // Logic
-            let activeG = gOff;
-            let activeVcorr = 0; // The battery part of the model
-
-            // Check Forward Bias
-            if (vDiff > vFwd) {
-                activeG = gOn;
-                activeVcorr = vFwd; // Opposes current from A to C
-                // Current I = (Vdiff - Vfwd) * Gon
-            }
-            // Check Reverse Bias (Zener Breakdown)
-            else if (vRev > 0 && (vC - vA) > vRev) {
-                // Breakdown! Current flows Cathode -> Anode
-                // Modeled as Source Vrev opposing C->A current
-                activeG = gOn;
-                activeVcorr = -vRev; // Negative because it's opposing the reverse potential? 
-
-                // Let's derive again:
-                // We want Vc - Va = Vrev  => Va - Vc = -Vrev
-                // I_c_to_a = (Vc - Va - Vrev) * Gon
-                // I_leaving_anode (entering diode from left) = - I_c_to_a
-                // = - (Vc - Va - Vrev) * Gon
-                // = (Va - Vc + Vrev) * Gon
-                // = (Va - Vc)*Gon + Vrev*Gon
-                // Anode Row: ... + (Va-Vc)G ... = - Vrev*Gon
-                // So activeVcorr = -Vrev.
-            }
-
-            // Apply G
-            G[nA][nA] += activeG; G[nC][nC] += activeG;
-            G[nA][nC] -= activeG; G[nC][nA] -= activeG;
-
-            // Apply Current Correction (RHS)
-            if (activeVcorr !== 0) {
-                const currentInj = activeVcorr * activeG;
-                // Anode Row RHS: += currentInj
-                I[nA] += currentInj;
-                // Cathode Row RHS: -= currentInj
-                I[nC] -= currentInj;
-            }
-        });
-
-        // -- Solve --
-        const nextSolution = solveLinearSystem(G, I);
-
-        // Damping / Convergence Check
-        let diffSum = 0;
-        for (let k = 0; k < matrixSize; k++) diffSum += Math.abs(nextSolution[k] - solution[k]);
-
-        solution = nextSolution;
-        if (diffSum < 0.001) break; // Converged
-    }
-
-    // --- Update UI ---
+    // 3. Update Components
     circuitComponents.forEach(comp => {
         const el = document.getElementById(`comp-${comp.id}`);
         if (!el) return;
 
-        const n1 = getNetId(comp.id, 'L');
-        const n2 = getNetId(comp.id, 'R');
-        const vL = (n1 !== -1) ? solution[n1] : 0;
-        const vR = (n2 !== -1) ? solution[n2] : 0;
-        const diff = vL - vR; // Anode - Cathode generally
+        const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
+        const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
+        const vL = netVoltages.get(netLIdx) || 0;
+        const vR = netVoltages.get(netRIdx) || 0;
+        const diff = Math.abs(vR - vL);
 
         if (comp.defId === 'v_meter') {
-            const vDiff = vR - vL; // Keep meter polarity standard (R is +?)
-            el.querySelector('.val-badge').textContent = `${vDiff.toFixed(2)}V`;
-            if (Math.abs(vDiff) > 0.1) el.classList.add('comp-active-v');
+            // Voltmeter shows voltage difference across its terminals
+            const voltageDiff = vR - vL;
+            el.querySelector('.val-badge').textContent = `${voltageDiff.toFixed(2)}V`;
+            if (Math.abs(voltageDiff) > 0.01) el.classList.add('comp-active-v');
             else el.classList.remove('comp-active-v');
         }
 
         if (comp.defId === 'a_meter') {
-            const i = (vL - vR) / 0.001; // Current L->R
-            el.querySelector('.val-badge').textContent = `${Math.abs(i).toFixed(3)}A`;
-            if (Math.abs(i) > 0.001) el.classList.add('comp-active-a');
+            const current = diff / 1.0;
+            el.querySelector('.val-badge').textContent = `${current.toFixed(2)}A`;
+            if (current > 0) el.classList.add('comp-active-a');
             else el.classList.remove('comp-active-a');
         }
 
-        if (['led', 'dio', 'zen', 'sch'].includes(comp.defId)) {
-            // Visual cleanup - if conducting significantly
-            // For Zener, if reverse breakdown (vR - vL > Vz), it's active.
-            let isActive = false;
-            if (diff > 0.5) isActive = true; // Forward
-            if (comp.defId === 'zen' && (vR - vL) > (parseFloat(comp.value) || 0) * 0.9) isActive = true; // Breakdown
 
-            if (isActive) el.classList.add('comp-active-led');
+        if (comp.defId === 'led') {
+            if (diff >= 1.5) el.classList.add('comp-active-led');
             else el.classList.remove('comp-active-led');
         }
     });
 }
-
-// --- Fill Voltage Sources ---
-voltageSources.forEach((comp, idx) => {
-    const vsIdx = numNets + idx; // Matrix index for this source current
-    let v = parseFloat(comp.value) || 9;
-    if (comp.unit === 'mV') v *= 0.001;
-
-    const nPos = getNetId(comp.id, 'L'); // Left is Positive terminal (Long Bar)
-    const nNeg = getNetId(comp.id, 'R'); // Right is Negative terminal (Short Bar)
-
-    // Equation: V(nPos) - V(nNeg) = v
-    // In Matrix:
-    // Row vsIdx (Constraint): ... 1*VPos ... -1*VNeg ... = v
-    // Col vsIdx (Current contribution): Adds current I_vs to KCL at nPos, subtracts at nNeg.
-
-    if (nPos !== -1) {
-        G[vsIdx][nPos] = 1;
-        G[nPos][vsIdx] = 1;
-    }
-    if (nNeg !== -1) {
-        G[vsIdx][nNeg] = -1;
-        G[nNeg][vsIdx] = -1;
-    }
-
-    I[vsIdx] = v;
-});
-
-// --- Ground Constraint ---
-// Fix gndNetIdx to 0V.
-// Modification: replace the row for gndNetIdx with "1 * Vgnd = 0" and clear other entries?
-// Efficient method: Set row/col G[gnd][gnd]=1, others=0, result[gnd]=0.
-// Be careful not to make matrix singular if Ground is connected to source.
-// Instead of row replace, let's just add G[gnd][gnd] += 1e9 (Big conductance to ground).
-// This is "soft grounding" but numerically stable.
-if (gndNetIdx !== -1 && gndNetIdx < matrixSize) {
-    G[gndNetIdx][gndNetIdx] += 1e6; // Conductance to abstract 0V reference
-    // I[gndNetIdx] += 0;
-}
-
-// --- Solve ---
-// This gives us voltages at each net index 0..numNets-1
-// And currents through voltage sources at indices numNets..matrixSize-1
-const solution = solveLinearSystem(G, I);
-
-// --- Update UI ---
-circuitComponents.forEach(comp => {
-    const el = document.getElementById(`comp-${comp.id}`);
-    if (!el) return;
-
-    const n1 = getNetId(comp.id, 'L');
-    const n2 = getNetId(comp.id, 'R');
-    const vL = (n1 !== -1) ? solution[n1] : 0;
-    const vR = (n2 !== -1) ? solution[n2] : 0;
-    const diff = vR - vL;
-
-    if (comp.defId === 'v_meter') {
-        el.querySelector('.val-badge').textContent = `${diff.toFixed(2)}V`;
-        if (Math.abs(diff) > 0.01) el.classList.add('comp-active-v');
-        else el.classList.remove('comp-active-v');
-    }
-
-    if (comp.defId === 'a_meter') {
-        // Current is Vdrop / R_ammeter
-        const i = diff / 0.001;
-        el.querySelector('.val-badge').textContent = `${i.toFixed(3)}A`;
-        if (Math.abs(i) > 0.001) el.classList.add('comp-active-a');
-        else el.classList.remove('comp-active-a');
-    }
-
-    // Simple LED visual
-    if (comp.defId === 'led') {
-        // For MNA with just resistor model, Vdrop determines on/off
-        if (diff > 1.5) el.classList.add('comp-active-led');
-        else el.classList.remove('comp-active-led');
-    }
-});
-
 
 function openEditModal(compData) {
     editingComponentId = compData.id;
@@ -1336,90 +1095,26 @@ function openEditModal(compData) {
     editModal.classList.remove('hidden');
 }
 
-// Direct assignment to ensure no event listener issues
-if (saveValueBtn) {
-    saveValueBtn.onclick = function updateComponentValue() {
-        console.log("Update Clicked via onclick");
-        try {
-            if (!editValue) {
-                alert("Critical Error: Edit input not found in DOM");
-                return;
-            }
-
-            const valStr = editValue.value;
-            console.log("Updating ID:", editingComponentId, "Value:", valStr);
-
-            if (editingComponentId === null) {
-                alert("Error: No component ID currently selected.");
-                return;
-            }
-
-            const comp = circuitComponents.find(c => c.id === editingComponentId);
-            if (comp) {
-                comp.value = valStr;
-
-                // Update Badge UI
-                const el = document.getElementById(`comp-${comp.id}`);
-                if (el) {
-                    const badge = el.querySelector('.val-badge');
-                    if (badge) badge.textContent = `${valStr}${comp.unit}`;
-                }
-
-                showToast("Component updated: " + valStr + comp.unit, "success");
-            } else {
-                alert("Error: Component not found in memory. Try refreshing.");
-            }
-
-            // Close Modal
-            if (editModal) editModal.classList.add('hidden');
-
-        } catch (e) {
-            alert("Update Handler Error: " + e.message);
-            console.error(e);
-        }
-    };
-} else { /* Just to handle the else block from previous code if it existed, or cleaner replace */ }
+saveValueBtn.addEventListener('click', () => {
+    const valStr = editValue.value;
+    const comp = circuitComponents.find(c => c.id === editingComponentId);
+    if (comp) {
+        comp.value = valStr;
+        const el = document.getElementById(`comp-${comp.id}`);
+        el.querySelector('.val-badge').textContent = `${valStr}${comp.unit}`;
+    }
+    editModal.classList.add('hidden');
+});
 
 if (runBtn) {
     runBtn.addEventListener('click', () => {
-        try {
-            console.log("Run button clicked");
-
-            // Prevent running empty circuits
-            if (!circuitComponents || circuitComponents.length === 0) {
-                showToast("Circuit is empty! Add components first.", "warning");
-                return;
-            }
-
-            // Validate but don't block
-            if (!validateCircuit()) {
-                // Warning handled in validateCircuit
-            }
-
-            console.log("Starting simulation...");
+        if (validateCircuit()) {
             isRunning = true;
             runBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
-
-            // Draw wires first
             drawWires();
-
-            // Solve - Pass 1 Check
-            if (typeof solveCircuit !== 'function') throw new Error("solveCircuit function missing");
             solveCircuit();
-
             document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = '#00f2ea');
-            showToast("Simulation Started", "success");
-
-        } catch (err) {
-            console.error("CRITICAL SIMULATION ERROR:", err);
-            alert("Simulation Error:\n" + err.name + ": " + err.message + "\n\nSee console for details.");
-
-            // Reset State
-            isRunning = false;
-            runBtn.classList.remove('hidden');
-            stopBtn.classList.add('hidden');
-            document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = 'currentColor');
         }
     });
 }
@@ -1458,46 +1153,13 @@ function moveComponent(id, x, y) {
     }
 }
 
-function rotateComponent(id) {
-    const comp = circuitComponents.find(c => c.id === id);
-    if (!comp) return;
-
-    if (!comp.rotation) comp.rotation = 0;
-    const oldRotation = comp.rotation;
-    comp.rotation = (comp.rotation + 90) % 360;
-
-    const el = document.getElementById(`comp-${id}`);
-    if (el) {
-        el.style.transform = `rotate(${comp.rotation}deg)`;
-    }
-
-    drawWires();
-}
-
-// Global Key Listener for Rotation
-document.addEventListener('keydown', (e) => {
-    // Ignore if typing in input fields
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-
-    if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        // Find selected component
-        const selected = document.querySelector('.circuit-component.selected');
-        if (selected) {
-            const idPart = selected.id.split('-')[1];
-            if (idPart) rotateComponent(parseInt(idPart));
-        }
-    }
-});
-
 function restoreComponent(compData, connectedWires) {
-    if (compData.rotation === undefined) compData.rotation = 0;
     circuitComponents.push(compData);
     const el = document.createElement('div');
     el.className = 'circuit-component component-2d';
     el.id = `comp-${compData.id}`;
     el.style.left = `${compData.x}px`;
     el.style.top = `${compData.y}px`;
-    if (compData.rotation) el.style.transform = `rotate(${compData.rotation}deg)`;
     const svgPath = svgIcons[compData.defId] || svgIcons['res'];
     el.innerHTML = `
         <div class="node node-left" data-node="L"></div>
