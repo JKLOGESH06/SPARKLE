@@ -113,9 +113,10 @@ const svgIcons = {
     'res': `<path d="M0,20 L10,20 L15,10 L25,30 L35,10 L45,30 L50,20 L60,20" fill="none" stroke="currentColor" stroke-width="2"/>`,
     'cap': `<path d="M0,20 L25,20 M35,20 L60,20 M25,5 L25,35 M35,5 L35,35" fill="none" stroke="currentColor" stroke-width="2"/>`,
     'ind': `<path d="M0,20 L15,20 M45,20 L60,20 Q18,5 25,20 Q28,5 35,20 Q38,5 45,20" fill="none" stroke="currentColor" stroke-width="2"/>`,
-    'dio': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M20,20 L40,10 L40,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
-    'led': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M20,20 L40,10 L40,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>
-            <path d="M30,10 L20,0 M35,8 L25,-2" stroke="currentColor" stroke-width="1.5" transform="translate(5, -5)"/>`,
+    // Diodes: Pointing Right (Anode Left, Cathode Right)
+    'dio': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M20,10 L40,20 L20,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
+    'led': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M20,10 L40,20 L20,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M25,8 L35,0 M30,10 L40,2" stroke="currentColor" stroke-width="1.5" transform="translate(0, -5)"/>`,
     'bjt': `<circle cx="30" cy="20" r="15" fill="none" stroke="currentColor" stroke-width="1.5"/>
             <path d="M25,10 L25,30 M25,20 L5,20 M25,15 L40,5 M25,25 L40,35" fill="none" stroke="currentColor" stroke-width="2"/>`,
     'ic': `<rect x="15" y="5" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -151,8 +152,8 @@ const svgIcons = {
                 <text x="30" y="24" text-anchor="middle" fill="currentColor" font-size="12" font-weight="bold">V</text>`,
     'a_meter': `<circle cx="30" cy="20" r="15" fill="none" stroke="currentColor" stroke-width="2"/>
                 <text x="30" y="24" text-anchor="middle" fill="currentColor" font-size="12" font-weight="bold">A</text>`,
-    'zen': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M40,5 L35,5 M40,35 L45,35 M20,20 L40,10 L40,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
-    'sch': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M40,5 L45,10 M40,35 L35,30 M20,20 L40,10 L40,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
+    'zen': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M40,5 L35,10 M40,35 L45,30 M20,10 L40,20 L20,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
+    'sch': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M40,5 L45,5 M45,5 L45,8 M40,35 L35,35 M35,35 L35,32 M20,10 L40,20 L20,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
     'pnp': `<circle cx="30" cy="20" r="15" fill="none" stroke="currentColor" stroke-width="1.5"/>
             <path d="M25,10 L25,30 M25,20 L5,20 M25,15 L40,5 M25,25 L40,35 M30,22 L25,20 L30,18" fill="none" stroke="currentColor" stroke-width="2"/>`,
     'mos': `<path d="M5,20 L20,20 M25,10 L25,30 M30,10 L30,15 M30,18 L30,22 M30,25 L30,30 M30,10 L50,10 M30,30 L50,30 M30,20 L50,20" fill="none" stroke="currentColor" stroke-width="2"/>`,
@@ -1007,7 +1008,6 @@ function solveLinearSystem(A, b) {
 
 function solveCircuit() {
     if (!isRunning) return;
-    console.log("Trace: solveCircuit start");
 
     // 1. Identify Nets (Groups of connected nodes)
     const nets = [];
@@ -1131,8 +1131,9 @@ function solveCircuit() {
             let v = parseFloat(comp.value) || 9;
             if (comp.unit === 'mV') v *= 0.001;
 
-            const nPos = getNetId(comp.id, 'R');
-            const nNeg = getNetId(comp.id, 'L');
+            // Corrected Polarity: Left (Long Bar) is Positive, Right (Short Bar) is Negative
+            const nPos = getNetId(comp.id, 'L');
+            const nNeg = getNetId(comp.id, 'R');
 
             if (nPos !== -1) { G[vsIdx][nPos] = 1; G[nPos][vsIdx] = 1; }
             if (nNeg !== -1) { G[vsIdx][nNeg] = -1; G[nNeg][vsIdx] = -1; }
@@ -1300,7 +1301,6 @@ function openEditModal(compData) {
 // 1. Component Update Logic
 if (saveValueBtn) {
     saveValueBtn.addEventListener('click', () => {
-        console.log("Update Value Clicked");
         try {
             if (!editValue) {
                 alert("Critical Error: Edit input not found in DOM");
@@ -1326,6 +1326,10 @@ if (saveValueBtn) {
                 }
 
                 showToast(`Component updated: ${valStr}${comp.unit}`, "success");
+
+                // If simulation is running, re-calculate immediately
+                if (isRunning && typeof solveCircuit === 'function') solveCircuit();
+
             } else {
                 alert("Error: Component not found in memory.");
             }
@@ -1343,7 +1347,6 @@ if (saveValueBtn) {
 // 2. Run / Stop Logic
 if (runBtn) {
     runBtn.addEventListener('click', () => {
-        console.log("Run Clicked");
         try {
             if (!circuitComponents || circuitComponents.length === 0) {
                 showToast("Circuit is empty!", "warning");
@@ -1381,7 +1384,6 @@ if (runBtn) {
 
 if (stopBtn) {
     stopBtn.addEventListener('click', () => {
-        console.log("Stop Clicked");
         isRunning = false;
         stopBtn.classList.add('hidden');
         runBtn.classList.remove('hidden');
@@ -1422,26 +1424,23 @@ function moveComponent(id, x, y) {
 
 // Rotate Logic
 function rotateComponent(id) {
-    console.log("Attempting to rotate component ID:", id);
     // Ensure ID is number if needed (our IDs are numbers)
     const numericId = parseInt(id);
     const comp = circuitComponents.find(c => c.id === numericId);
 
     if (!comp) {
-        console.error("Rotate Error: Component not found for ID:", id);
         return;
     }
 
     if (!comp.rotation) comp.rotation = 0;
     const oldRotation = comp.rotation;
     comp.rotation = (comp.rotation + 90) % 360;
-    console.log("Rotated", comp.name, "from", oldRotation, "to", comp.rotation);
 
     const el = document.getElementById(`comp-${numericId}`);
     if (el) {
         el.style.transform = `rotate(${comp.rotation}deg)`;
     } else {
-        console.warn("Rotate Warning: DOM Element not found for ID:", numericId);
+        // console.warn("Rotate Warning: DOM Element not found for ID:", numericId);
     }
 
     drawWires();
@@ -1594,7 +1593,9 @@ function attachComponentInteractions(el, compData) {
                 };
                 wires.push(newWire);
                 addToHistory({ type: 'WIRE', data: { wire: newWire } });
-                currentWireStart = null; tempWireEnd = null; drawWires();
+                currentWireStart = null; tempWireEnd = null;
+                drawWires();
+                if (isRunning && typeof solveCircuit === 'function') solveCircuit();
             }
             if (e.touches) e.preventDefault();
         };
@@ -1624,11 +1625,4 @@ if (componentSearch) {
 
 const cloudSaveBtn = document.getElementById('cloud-save-btn');
 const cloudLoadBtn = document.getElementById('cloud-load-btn');
-
-if (cloudSaveBtn) {
-    cloudSaveBtn.addEventListener('click', saveCircuitToCloud);
-}
-
-if (cloudLoadBtn) {
-    cloudLoadBtn.addEventListener('click', loadCircuitFromCloud);
-}
+```
