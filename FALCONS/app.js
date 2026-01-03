@@ -203,7 +203,7 @@ const svgIcons = {
 
 let circuitComponents = [];
 let wires = [];
-let isRunning = false;
+
 let nextId = 1;
 let currentWireStart = null;
 let tempWireEnd = null;
@@ -214,8 +214,7 @@ const paletteList = document.getElementById('palette-list');
 const circuitBoard = document.getElementById('circuit-board');
 let wiresLayer = document.getElementById('wires-layer');
 const loginForm = document.getElementById('login-form');
-const runBtn = document.getElementById('run-btn');
-const stopBtn = document.getElementById('stop-btn');
+
 const editModal = document.getElementById('edit-modal');
 const zoomInBtn = document.getElementById('zoom-in');
 const zoomOutBtn = document.getElementById('zoom-out');
@@ -329,10 +328,6 @@ function updateAuthState(loggedIn, user = null) {
         dashboardScreen.classList.add('hidden');
         loginScreen.classList.remove('hidden');
         setTimeout(() => loginScreen.classList.add('active'), 50);
-
-        isRunning = false;
-        if (runBtn) runBtn.classList.remove('hidden');
-        if (stopBtn) stopBtn.classList.add('hidden');
     }
 }
 
@@ -873,9 +868,8 @@ function drawWires() {
         const p2 = getPos(wire.end.compId, wire.end.nodeId);
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
-        path.setAttribute('d', d); path.setAttribute('stroke', isRunning ? '#00f2ea' : '#888');
-        path.setAttribute('stroke-width', isRunning ? '3' : '2'); path.setAttribute('fill', 'none');
-        if (isRunning) path.classList.add('active');
+        path.setAttribute('d', d); path.setAttribute('stroke', '#888');
+        path.setAttribute('stroke-width', '2'); path.setAttribute('fill', 'none');
         wiresLayer.appendChild(path);
     });
     if (currentWireStart && tempWireEnd) {
@@ -968,7 +962,7 @@ function solveLinearSystem(A, b) {
 }
 
 function solveCircuit() {
-    if (!isRunning) return;
+    // isRunning check removed
     console.log("Trace: solveCircuit start");
 
     // 1. Identify Nets (Groups of connected nodes)
@@ -1377,71 +1371,7 @@ if (saveValueBtn) {
 } else { /* Just to handle the else block from previous code if it existed, or cleaner replace */ }
 
 
-if (runBtn) {
-    runBtn.addEventListener('click', () => {
-        try {
-            console.log("Run button clicked");
 
-            // Prevent running empty circuits
-            if (!circuitComponents || circuitComponents.length === 0) {
-                showToast("Circuit is empty! Add components first.", "warning");
-                return;
-            }
-
-            // Validate but don't block
-            if (!validateCircuit()) {
-                // Warning handled in validateCircuit
-            }
-
-            console.log("Starting simulation...");
-            isRunning = true;
-            runBtn.classList.add('hidden');
-            stopBtn.classList.remove('hidden');
-
-            // Draw wires first
-            drawWires();
-
-            // Solve - Pass 1 Check
-            if (typeof solveCircuit !== 'function') throw new Error("solveCircuit function missing");
-            solveCircuit();
-
-            document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = '#00f2ea');
-            showToast("Simulation Started", "success");
-
-        } catch (err) {
-            console.error("CRITICAL SIMULATION ERROR:", err);
-            alert("Simulation Error:\n" + err.name + ": " + err.message + "\n\nSee console for details.");
-
-            // Reset State
-            isRunning = false;
-            runBtn.classList.remove('hidden');
-            stopBtn.classList.add('hidden');
-            document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = 'currentColor');
-        }
-    });
-}
-
-if (stopBtn) {
-    stopBtn.addEventListener('click', () => {
-        isRunning = false;
-        stopBtn.classList.add('hidden');
-        runBtn.classList.remove('hidden');
-        drawWires();
-
-        document.querySelectorAll('.comp-active-led').forEach(el => el.classList.remove('comp-active-led'));
-        document.querySelectorAll('.comp-active-v').forEach(el => el.classList.remove('comp-active-v'));
-        document.querySelectorAll('.comp-active-a').forEach(el => el.classList.remove('comp-active-a'));
-
-        circuitComponents.forEach(comp => {
-            if (comp.defId === 'v_meter' || comp.defId === 'a_meter') {
-                const el = document.getElementById(`comp-${comp.id}`);
-                if (el) el.querySelector('.val-badge').textContent = `0${comp.unit}`;
-            }
-        });
-
-        document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = 'currentColor');
-    });
-}
 
 /* Helper Functions for Undo/Redo */
 
