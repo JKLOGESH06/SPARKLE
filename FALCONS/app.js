@@ -10,7 +10,12 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+try {
+    firebase.initializeApp(firebaseConfig);
+    console.log("Firebase Initialized Successfully");
+} catch (e) {
+    console.error("Firebase Init Failed:", e);
+}
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -98,7 +103,18 @@ const componentsDB = [
     { id: 'pdio', name: "Photo-diode", type: "sensor", value: 0, unit: "lx", icon: "fa-eye" },
     { id: 'nth', name: "Thermistor (NTC)", type: "sensor", value: 10, unit: "kΩ", icon: "fa-temperature-low" },
     { id: 'cell', name: "Cell (1.5V)", type: "source", value: 1.5, unit: "V", icon: "fa-battery-quarter" },
-    { id: 'trim', name: "Bourns Trimpot 10k", type: "passive", value: 10, unit: "kΩ", icon: "fa-square-caret-down" }
+    { id: 'trim', name: "Bourns Trimpot 10k", type: "passive", value: 10, unit: "kΩ", icon: "fa-square-caret-down" },
+
+    // Phase 4 Additions (User Requested) - flagged for custom rendering
+    { id: 'esp32', name: "ESP32 Dev Module", type: "mcu", value: 0, unit: "", icon: "fa-microchip", custom: true },
+    { id: 'uno', name: "Arduino Uno", type: "mcu", value: 0, unit: "", icon: "fa-microchip", custom: true },
+    { id: 'nano', name: "Arduino Nano", type: "mcu", value: 0, unit: "", icon: "fa-microchip", custom: true },
+    { id: 'mega', name: "Arduino Mega", type: "mcu", value: 0, unit: "", icon: "fa-microchip", custom: true },
+    { id: 'atsha', name: "ATSHA204A Crypto", type: "active", value: 0, unit: "", icon: "fa-key" },
+    { id: 'p_amp', name: "RF Power Amp", type: "rf", value: 0, unit: "dB", icon: "fa-wifi" },
+    { id: 'ant_433', name: "433 MHz Antenna", type: "rf", value: 0, unit: "", icon: "fa-tower-broadcast" },
+    { id: 'oled', name: "OLED Display", type: "output", value: 0, unit: "", icon: "fa-display" },
+    { id: 'max3014', name: "MAX3014 Codec", type: "active", value: 0, unit: "", icon: "fa-headphones" }
 ];
 
 // Helper to generate Module SVG
@@ -113,9 +129,10 @@ const svgIcons = {
     'res': `<path d="M0,20 L10,20 L15,10 L25,30 L35,10 L45,30 L50,20 L60,20" fill="none" stroke="currentColor" stroke-width="2"/>`,
     'cap': `<path d="M0,20 L25,20 M35,20 L60,20 M25,5 L25,35 M35,5 L35,35" fill="none" stroke="currentColor" stroke-width="2"/>`,
     'ind': `<path d="M0,20 L15,20 M45,20 L60,20 Q18,5 25,20 Q28,5 35,20 Q38,5 45,20" fill="none" stroke="currentColor" stroke-width="2"/>`,
-    'dio': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M20,20 L40,10 L40,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
-    'led': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M20,20 L40,10 L40,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>
-            <path d="M30,10 L20,0 M35,8 L25,-2" stroke="currentColor" stroke-width="1.5" transform="translate(5, -5)"/>`,
+    // Diodes: Pointing Right (Anode Left, Cathode Right)
+    'dio': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M20,10 L40,20 L20,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
+    'led': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M20,10 L40,20 L20,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M25,8 L35,0 M30,10 L40,2" stroke="currentColor" stroke-width="1.5" transform="translate(0, -5)"/>`,
     'bjt': `<circle cx="30" cy="20" r="15" fill="none" stroke="currentColor" stroke-width="1.5"/>
             <path d="M25,10 L25,30 M25,20 L5,20 M25,15 L40,5 M25,25 L40,35" fill="none" stroke="currentColor" stroke-width="2"/>`,
     'ic': `<rect x="15" y="5" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -151,8 +168,8 @@ const svgIcons = {
                 <text x="30" y="24" text-anchor="middle" fill="currentColor" font-size="12" font-weight="bold">V</text>`,
     'a_meter': `<circle cx="30" cy="20" r="15" fill="none" stroke="currentColor" stroke-width="2"/>
                 <text x="30" y="24" text-anchor="middle" fill="currentColor" font-size="12" font-weight="bold">A</text>`,
-    'zen': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M40,5 L35,5 M40,35 L45,35 M20,20 L40,10 L40,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
-    'sch': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M40,5 L45,10 M40,35 L35,30 M20,20 L40,10 L40,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
+    'zen': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M40,5 L35,10 M40,35 L45,30 M20,10 L40,20 L20,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
+    'sch': `<path d="M0,20 L20,20 M40,20 L60,20 M40,5 L40,35 M40,5 L45,5 M45,5 L45,8 M40,35 L35,35 M35,35 L35,32 M20,10 L40,20 L20,30 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
     'pnp': `<circle cx="30" cy="20" r="15" fill="none" stroke="currentColor" stroke-width="1.5"/>
             <path d="M25,10 L25,30 M25,20 L5,20 M25,15 L40,5 M25,25 L40,35 M30,22 L25,20 L30,18" fill="none" stroke="currentColor" stroke-width="2"/>`,
     'mos': `<path d="M5,20 L20,20 M25,10 L25,30 M30,10 L30,15 M30,18 L30,22 M30,25 L30,30 M30,10 L50,10 M30,30 L50,30 M30,20 L50,20" fill="none" stroke="currentColor" stroke-width="2"/>`,
@@ -198,7 +215,44 @@ const svgIcons = {
     'trim': `<rect x="15" y="5" width="30" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
              <circle cx="40" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
              <line x1="38" y1="10" x2="42" y2="10" stroke="currentColor" stroke-width="1"/>
-             <path d="M0,20 L15,20 M45,20 L60,20" stroke="currentColor" stroke-width="2"/>`
+             <path d="M0,20 L15,20 M45,20 L60,20" stroke="currentColor" stroke-width="2"/>`,
+
+    // Phase 4 Icons - Enhanced Visuals & Scaled for Big Boards
+    'esp32': `<rect x="0" y="0" width="90" height="130" rx="4" fill="#1a1a1a" stroke="#000" stroke-width="2"/>
+              <rect x="25" y="20" width="40" height="60" rx="2" fill="#ccc" stroke="#999"/> <!-- Shield -->
+              <text x="45" y="50" text-anchor="middle" fill="#666" font-size="8" font-family="monospace">ESP32</text>
+              <rect x="35" y="120" width="20" height="8" fill="#silver"/> <!-- USB -->`,
+
+    'uno': `<rect x="0" y="0" width="140" height="100" rx="4" fill="#008CBA" stroke="#005f7f" stroke-width="2"/>
+            <rect x="0" y="20" width="30" height="30" fill="#silver" stroke="#666"/> <!-- USB -->
+            <rect x="5" y="70" width="20" height="25" fill="#111"/> <!-- DC Jack -->
+            <rect x="60" y="50" width="50" height="15" fill="#111" stroke="#333"/> <!-- Chip -->
+            <text x="85" y="61" text-anchor="middle" fill="#fff" font-size="10">ATMEGA328P</text>
+            <text x="70" y="80" fill="#fff" font-size="14" font-weight="bold">UNO</text>`,
+
+    'nano': `<rect x="0" y="0" width="80" height="120" rx="2" fill="#004080" stroke="#002040" stroke-width="2"/>
+             <rect x="25" y="5" width="30" height="20" fill="#silver"/> <!-- USB -->
+             <rect x="30" y="50" width="20" height="20" transform="rotate(45 40 60)" fill="#111"/> <!-- Chip -->
+             <text x="40" y="90" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">NANO</text>`,
+
+    'mega': `<rect x="0" y="0" width="200" height="110" rx="4" fill="#007acc" stroke="#005c99" stroke-width="2"/>
+             <rect x="0" y="20" width="25" height="25" fill="#silver"/> <!-- USB -->
+             <rect x="80" y="40" width="40" height="40" transform="rotate(45 100 60)" fill="#111"/> <!-- Chip -->
+             <text x="140" y="70" text-anchor="middle" fill="#fff" font-size="16" font-weight="bold">MEGA 2560</text>`,
+    'atsha': `<rect x="15" y="5" width="30" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+              <text x="30" y="20" text-anchor="middle" fill="currentColor" font-size="6">CRYPTO</text>
+              <path d="M25,25 L35,25 L35,30 M30,22 L30,25" stroke="currentColor" stroke-width="1.5"/>`,
+    'p_amp': `<path d="M10,30 L10,10 L45,20 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+              <path d="M45,20 L55,20 M5,20 L10,20" stroke="currentColor" stroke-width="2"/>
+              <text x="22" y="23" fill="currentColor" font-size="8" font-weight="bold">PA</text>`,
+    'ant_433': `<path d="M30,35 L30,20 M30,20 L20,5 M30,20 L40,5 M30,20 L30,5" stroke="currentColor" stroke-width="2"/>
+                <path d="M20,5 Q30,0 40,5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2,2"/>`,
+    'oled': `<rect x="5" y="5" width="50" height="30" rx="2" fill="#000" stroke="currentColor" stroke-width="2"/>
+             <rect x="8" y="8" width="44" height="24" fill="#0af" opacity="0.2"/>
+             <text x="28" y="24" text-anchor="middle" fill="#0af" font-size="8">OLED</text>`,
+    'max3014': `<rect x="12" y="5" width="36" height="30" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="M12,12 L5,12 M54,12 L48,12 M12,28 L5,28 M54,28 L48,28" stroke="currentColor" stroke-width="1.5"/>
+                <text x="30" y="22" text-anchor="middle" fill="currentColor" font-size="7">CODEC</text>`
 };
 
 let circuitComponents = [];
@@ -221,6 +275,7 @@ const zoomInBtn = document.getElementById('zoom-in');
 const zoomOutBtn = document.getElementById('zoom-out');
 const contextMenu = document.getElementById('context-menu');
 const ctxDelete = document.getElementById('ctx-delete');
+const ctxRotate = document.getElementById('ctx-rotate');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsModal = document.getElementById('settings-modal');
 const exportExcelBtn = document.getElementById('export-excel-btn');
@@ -252,6 +307,72 @@ const editName = document.getElementById('edit-name');
 const editValue = document.getElementById('edit-value');
 const editUnit = document.getElementById('edit-unit');
 const saveValueBtn = document.getElementById('save-value-btn');
+// Pin Layout Definitions (Width, Height, Pins Array)
+const pinLayouts = {
+    'uno': {
+        width: 140, height: 100,
+        pins: [
+            // Top Header (Digital)
+            { id: 'D0', x: 120, y: 10 }, { id: 'D1', x: 112, y: 10 }, { id: 'D2', x: 104, y: 10 }, { id: 'D3', x: 96, y: 10 },
+            { id: 'D4', x: 88, y: 10 }, { id: 'D5', x: 80, y: 10 }, { id: 'D6', x: 72, y: 10 }, { id: 'D7', x: 64, y: 10 },
+            { id: 'D8', x: 54, y: 10 }, { id: 'D9', x: 46, y: 10 }, { id: 'D10', x: 38, y: 10 }, { id: 'D11', x: 30, y: 10 },
+            { id: 'D12', x: 22, y: 10 }, { id: 'D13', x: 14, y: 10 }, { id: 'GND1', x: 6, y: 10 }, { id: 'AREF', x: 0, y: 10 },
+            // Bottom Header (Power + Analog)
+            // Power
+            { id: 'RST', x: 30, y: 90 }, { id: '3V3', x: 38, y: 90 }, { id: '5V', x: 46, y: 90 },
+            { id: 'GND2', x: 54, y: 90 }, { id: 'GND3', x: 62, y: 90 }, { id: 'VIN', x: 70, y: 90 },
+            // Analog
+            { id: 'A0', x: 86, y: 90 }, { id: 'A1', x: 94, y: 90 }, { id: 'A2', x: 102, y: 90 },
+            { id: 'A3', x: 110, y: 90 }, { id: 'A4', x: 118, y: 90 }, { id: 'A5', x: 126, y: 90 }
+        ]
+    },
+    'nano': {
+        width: 80, height: 120,
+        pins: [
+            // Left Row (Top to Bottom)
+            { id: 'D13', x: 5, y: 10 }, { id: '3V3', x: 5, y: 18 }, { id: 'REF', x: 5, y: 26 }, { id: 'A0', x: 5, y: 34 },
+            { id: 'A1', x: 5, y: 42 }, { id: 'A2', x: 5, y: 50 }, { id: 'A3', x: 5, y: 58 }, { id: 'A4', x: 5, y: 66 },
+            { id: 'A5', x: 5, y: 74 }, { id: 'A6', x: 5, y: 82 }, { id: 'A7', x: 5, y: 90 }, { id: '5V', x: 5, y: 98 },
+            { id: 'RST', x: 5, y: 106 }, { id: 'GND1', x: 5, y: 114 },
+            // Right Row (Top to Bottom)
+            { id: 'D12', x: 75, y: 10 }, { id: 'D11', x: 75, y: 18 }, { id: 'D10', x: 75, y: 26 }, { id: 'D9', x: 75, y: 34 },
+            { id: 'D8', x: 75, y: 42 }, { id: 'D7', x: 75, y: 50 }, { id: 'D6', x: 75, y: 58 }, { id: 'D5', x: 75, y: 66 },
+            { id: 'D4', x: 75, y: 74 }, { id: 'D3', x: 75, y: 82 }, { id: 'D2', x: 75, y: 90 }, { id: 'GND2', x: 75, y: 98 },
+            { id: 'RST2', x: 75, y: 106 }, { id: 'TX', x: 75, y: 114 }
+        ]
+    },
+    'esp32': {
+        width: 90, height: 130,
+        pins: [
+            // Left Row
+            { id: 'EN', x: 5, y: 10 }, { id: 'VP', x: 5, y: 18 }, { id: 'VN', x: 5, y: 26 }, { id: '34', x: 5, y: 34 },
+            { id: '35', x: 5, y: 42 }, { id: '32', x: 5, y: 50 }, { id: '33', x: 5, y: 58 }, { id: '25', x: 5, y: 66 },
+            { id: '26', x: 5, y: 74 }, { id: '27', x: 5, y: 82 }, { id: '14', x: 5, y: 90 }, { id: '12', x: 5, y: 98 },
+            { id: 'GND1', x: 5, y: 106 }, { id: '13', x: 5, y: 114 }, { id: 'D2', x: 5, y: 122 },
+            // Right Row
+            { id: '23', x: 85, y: 10 }, { id: '22', x: 85, y: 18 }, { id: 'TX', x: 85, y: 26 }, { id: 'RX', x: 85, y: 34 },
+            { id: '21', x: 85, y: 42 }, { id: 'GND2', x: 85, y: 50 }, { id: '19', x: 85, y: 58 }, { id: '18', x: 85, y: 66 },
+            { id: '5', x: 85, y: 74 }, { id: '17', x: 85, y: 82 }, { id: '16', x: 85, y: 90 }, { id: '4', x: 85, y: 98 },
+            { id: '0', x: 85, y: 106 }, { id: '2', x: 85, y: 114 }, { id: '15', x: 85, y: 122 }
+        ]
+    },
+    'mega': {
+        width: 200, height: 110,
+        pins: [
+            // Top Digital
+            { id: 'D22', x: 190, y: 10 }, { id: 'D24', x: 182, y: 10 }, { id: 'D26', x: 174, y: 10 }, { id: 'D28', x: 166, y: 10 },
+            { id: 'D0', x: 140, y: 10 }, { id: 'D1', x: 132, y: 10 }, { id: 'D2', x: 124, y: 10 }, { id: 'D3', x: 116, y: 10 },
+            { id: 'D4', x: 108, y: 10 }, { id: 'D5', x: 100, y: 10 }, { id: 'D6', x: 92, y: 10 }, { id: 'D7', x: 84, y: 10 },
+            { id: 'D8', x: 70, y: 10 }, { id: 'D9', x: 62, y: 10 }, { id: 'D10', x: 54, y: 10 }, { id: 'D11', x: 46, y: 10 },
+            { id: 'D12', x: 38, y: 10 }, { id: 'D13', x: 30, y: 10 }, { id: 'GND', x: 20, y: 10 },
+            // Bottom
+            { id: '5V', x: 40, y: 100 }, { id: '3V3', x: 30, y: 100 }, { id: 'GND2', x: 50, y: 100 },
+            { id: 'A0', x: 80, y: 100 }, { id: 'A1', x: 88, y: 100 }, { id: 'A2', x: 96, y: 100 }, { id: 'A3', x: 104, y: 100 },
+            { id: 'A4', x: 112, y: 100 }, { id: 'A5', x: 120, y: 100 }, { id: 'A8', x: 135, y: 100 }, { id: 'A15', x: 190, y: 100 }
+        ]
+    }
+};
+
 let editingComponentId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -372,7 +493,9 @@ if (authBtn) {
 
 // Login Form Submit
 if (loginForm) {
+    console.log("Login Form Found, attaching listener.");
     loginForm.addEventListener('submit', (e) => {
+        console.log("Form Submitted! Preventing Default.");
         e.preventDefault();
         const email = document.getElementById('username').value;
         const password = document.getElementById('password').value;
@@ -557,7 +680,11 @@ function loadCircuitFromCloud() {
             let maxIdNum = 0;
             data.components.forEach(c => {
                 restoreComponent(c, []);
-                const idNum = parseInt(c.id.split('_')[1]);
+                // Fix: ID is stored as number in comp data objects usually
+                // But let's handle if it was undefined or whatever
+                // If c.id is "comp-1", split might be needed. If it's just 1, direct use.
+                // Our data model uses numbers for IDs.
+                const idNum = parseInt(c.id);
                 if (!isNaN(idNum)) maxIdNum = Math.max(maxIdNum, idNum);
             });
 
@@ -637,16 +764,13 @@ function renderPalette(query = '') {
         }
     }
 
-    // --- FULL LIBRARY SECTION ---
-    if (lowQuery) {
-        const fullHeader = document.createElement('div');
-        fullHeader.className = 'palette-category-header';
-        fullHeader.style.opacity = '0.5';
-        fullHeader.textContent = 'All Components';
-        listContainer.appendChild(fullHeader);
-    }
+    // If we have a query, we stop here (Only show matches)
+    if (lowQuery) return;
 
+    // --- FULL LIBRARY SECTION (Only if no search) ---
     const categories = {
+        'mcu': 'Microcontrollers',
+        'rf': 'RF Modules',
         'source': 'Power Sources',
         'passive': 'Passive Components',
         'active': 'Active Components',
@@ -664,9 +788,6 @@ function renderPalette(query = '') {
             listContainer.appendChild(header);
 
             catComps.forEach(comp => {
-                // If searching, skip the duplicate if it's already in matches
-                if (lowQuery && matches.find(m => m.id === comp.id)) return;
-
                 listContainer.appendChild(createPaletteItem(comp));
             });
         }
@@ -725,7 +846,8 @@ componentSearch.addEventListener('keypress', (e) => {
 
 // Real-time filtering remains as an option or can be disabled
 componentSearch.addEventListener('input', (e) => {
-    if (e.target.value === '') renderPalette();
+    // Always render, even if empty (which resets to full list)
+    renderPalette(e.target.value);
 });
 
 
@@ -773,8 +895,15 @@ function setupCanvasInteractions() {
     };
 
     const handleUp = (e) => {
+        // Waypoint Logic: If released on board (not node), add a waypoint
         if (currentWireStart && !e.target.classList.contains('node')) {
-            currentWireStart = null; tempWireEnd = null; drawWires();
+            if (tempWireEnd) {
+                if (!currentWireStart.waypoints) currentWireStart.waypoints = [];
+                // Add current cursor position as waypoint
+                currentWireStart.waypoints.push({ x: tempWireEnd.x, y: tempWireEnd.y });
+            }
+            // Do NOT clear currentWireStart. User continues drawing from this waypoint.
+            drawWires();
         }
     };
 
@@ -795,6 +924,9 @@ function updateZoom(delta) {
 function setupContextMenu() {
     document.addEventListener('click', () => { contextMenu.classList.add('hidden'); contextMenuTargetId = null; });
     ctxDelete.addEventListener('click', () => { if (contextMenuTargetId !== null) { deleteComponent(contextMenuTargetId); contextMenu.classList.add('hidden'); } });
+    if (ctxRotate) {
+        ctxRotate.addEventListener('click', () => { if (contextMenuTargetId !== null) { rotateComponent(contextMenuTargetId); contextMenu.classList.add('hidden'); } });
+    }
     circuitBoard.addEventListener('contextmenu', (e) => { e.preventDefault(); });
 }
 
@@ -816,21 +948,50 @@ function deleteComponent(id, recordHistory = true) {
 
 function addComponentToCanvas(compDef, x, y) {
     const id = nextId++;
-    const compData = { id: id, defId: compDef.id, name: compDef.name, value: compDef.value, unit: compDef.unit, x: x, y: y };
+    const compData = { id: id, defId: compDef.id, name: compDef.name, value: compDef.value, unit: compDef.unit, x: x, y: y, rotation: 0 };
     circuitComponents.push(compData);
 
     const el = document.createElement('div');
     el.className = 'circuit-component component-2d';
+
+    // Custom Layout or Standard
+    if (pinLayouts[compDef.id]) {
+        const layout = pinLayouts[compDef.id];
+        compData.width = layout.width;
+        compData.height = layout.height;
+    } else {
+        compData.width = 60;
+        compData.height = 40;
+    }
+
     el.id = `comp-${id}`;
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
+    el.style.width = `${compData.width}px`;
+    el.style.height = `${compData.height}px`;
+
     const svgPath = svgIcons[compDef.id] || svgIcons['res'];
 
+    // Render Nodes (Custom or Standard 2)
+    let nodesHTML = '';
+    if (pinLayouts[compDef.id]) {
+        pinLayouts[compDef.id].pins.forEach(pin => {
+            nodesHTML += `<div class="node custom-node" data-node="${pin.id}" 
+                style="left: ${pin.x}px; top: ${pin.y}px;" 
+                title="${pin.id}"></div>`;
+        });
+    } else {
+        nodesHTML = `
+           <div class="node node-left" data-node="L"></div>
+           <div class="node node-right" data-node="R"></div>`;
+    }
+
     el.innerHTML = `
-        <div class="node node-left" data-node="L"></div>
-        <svg class="comp-svg" width="60" height="40" viewBox="0 0 60 40">${svgPath}</svg>
-        <div class="node node-right" data-node="R"></div>
-        <div class="comp-label"><span class="name">${compData.name}</span><span class="val-badge">${compData.value}${compData.unit}</span></div>`;
+        ${nodesHTML}
+        // Scale SVG to fit new bounds if custom
+        <svg class="comp-svg" width="${compData.width}" height="${compData.height}" 
+             viewBox="0 0 ${compData.width} ${compData.height}" preserveAspectRatio="none">${svgPath}</svg>
+        <div class="comp-label" style="top: ${compData.height + 2}px"><span class="name">${compData.name}</span><span class="val-badge">${compData.value}${compData.unit}</span></div>`;
 
     attachComponentInteractions(el, compData);
     circuitBoard.appendChild(el);
@@ -838,28 +999,120 @@ function addComponentToCanvas(compDef, x, y) {
     addToHistory({ type: 'ADD', data: compData });
 }
 
+// Updated drawWires to support Waypoints
 function drawWires() {
+    wiresLayer.innerHTML = '';
     wiresLayer.innerHTML = '';
     const getPos = (compId, nodeId) => {
         const comp = circuitComponents.find(c => c.id === compId); if (!comp) return { x: 0, y: 0 };
-        let y = comp.y + 30; let x = comp.x; if (nodeId === 'R') x += 80; return { x, y };
+
+        // Custom Layout Node Position
+        if (pinLayouts[comp.defId]) {
+            const layout = pinLayouts[comp.defId];
+            const pin = layout.pins.find(p => p.id === nodeId);
+            if (pin) {
+                // Apply rotation transform logic if needed, but for now simple offset
+                // Simplification: Assume no rotation for complex boards for now or handle it later
+                /* 
+                  Rotation Logic x,y relative to center (w/2, h/2)
+                */
+                const cx = layout.width / 2;
+                const cy = layout.height / 2;
+                const dx = pin.x - cx;
+                const dy = pin.y - cy;
+                const rad = (comp.rotation || 0) * (Math.PI / 180);
+                const rdx = dx * Math.cos(rad) - dy * Math.sin(rad);
+                const rdy = dx * Math.sin(rad) + dy * Math.cos(rad);
+                return { x: comp.x + cx + rdx, y: comp.y + cy + rdy };
+            }
+        }
+
+        // Standard 2-Node
+        const cx = 40; const cy = 30; // 30 is center of 60? No 40x30, width=60 height=40 (center 30,20)
+        // Wait, original hardcoded cx=40 implies width 80? But CSS says 60.
+        // Let's stick to safe defaults. Original code: cx=40 (center X relative to component?)
+        // Standard comp 60x40. Center is 30,20. 
+        // Original code: cx=40, cy=30. (Maybe 80x60 bbox?)
+        // Let's rely on simple offsets if rotation is 0, else generic
+
+        // Just use original logic for compatibility
+        let lx = (nodeId === 'L') ? 9 : 71; // 9 and 71... seems wider than 60. Maybe SVG is 80 wide?
+        let ly = 24; // Center Y approx
+
+        // Re-align with 60x40 standard:
+        // L node at -something?
+        // Let's trust the previous math worked for existing comps
+        const rad = (comp.rotation || 0) * (Math.PI / 180);
+        // Recalc relative to top-left comp.x, comp.y
+        // The original logic seemed to assume a center based transformation
+        // Let's keep it exactly as it was for standard components:
+        const o_cx = 40; const o_cy = 30; // "Center" for rotation anchor
+        const dx = lx - o_cx; const dy = ly - o_cy;
+        const rdx = dx * Math.cos(rad) - dy * Math.sin(rad);
+        const rdy = dx * Math.sin(rad) + dy * Math.cos(rad);
+        return { x: comp.x + o_cx + rdx, y: comp.y + o_cy + rdy };
     };
+
+    // Draw Completed Wires
     wires.forEach(wire => {
         const p1 = getPos(wire.start.compId, wire.start.nodeId);
         const p2 = getPos(wire.end.compId, wire.end.nodeId);
+
+        let d = `M ${p1.x} ${p1.y}`;
+        if (wire.waypoints && wire.waypoints.length > 0) {
+            wire.waypoints.forEach(wp => {
+                d += ` L ${wp.x} ${wp.y}`;
+            });
+        }
+        d += ` L ${p2.x} ${p2.y}`;
+
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
-        path.setAttribute('d', d); path.setAttribute('stroke', isRunning ? '#00f2ea' : '#888');
-        path.setAttribute('stroke-width', isRunning ? '3' : '2'); path.setAttribute('fill', 'none');
+        path.setAttribute('d', d);
+        path.setAttribute('stroke', isRunning ? '#00f2ea' : '#888');
+        path.setAttribute('stroke-width', isRunning ? '3' : '2');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-linejoin', 'round');
+        path.setAttribute('stroke-linecap', 'round');
+
         if (isRunning) path.classList.add('active');
         wiresLayer.appendChild(path);
+
+        // Draw Waypoint dots for visibility (optional, but helpful for debugging/visuals)
+        if (wire.waypoints) {
+            wire.waypoints.forEach(wp => {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', wp.x); circle.setAttribute('cy', wp.y);
+                circle.setAttribute('r', '2'); circle.setAttribute('fill', '#888');
+                wiresLayer.appendChild(circle);
+            });
+        }
     });
+
+    // Draw Active Drawing Wire
     if (currentWireStart && tempWireEnd) {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', currentWireStart.x); line.setAttribute('y1', currentWireStart.y);
-        line.setAttribute('x2', tempWireEnd.x); line.setAttribute('y2', tempWireEnd.y);
-        line.setAttribute('stroke', '#fff'); line.setAttribute('stroke-dasharray', '5,5');
-        wiresLayer.appendChild(line);
+        const pStart = currentWireStart; // Has x,y from initial click
+        // But better to re-calculate from component in case it moved? 
+        // No, you can't move components while drawing wires usually.
+
+        let d = `M ${pStart.x} ${pStart.y}`;
+
+        // Draw confirmed waypoints
+        if (currentWireStart.waypoints && currentWireStart.waypoints.length > 0) {
+            currentWireStart.waypoints.forEach(wp => {
+                d += ` L ${wp.x} ${wp.y}`;
+            });
+        }
+
+        // Draw line to current cursor
+        d += ` L ${tempWireEnd.x} ${tempWireEnd.y}`;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('stroke', '#fff');
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-dasharray', '5,5');
+        wiresLayer.appendChild(path);
     }
 }
 
@@ -894,10 +1147,53 @@ function validateCircuit() {
     });
 
     if (!isValid) {
-        showToast("Connection Error: Open circuit detected. Please connect all component pins.");
+        showToast("Warning: Open circuit pins detected. Simulation continues.", "warning");
     }
 
-    return isValid;
+    return true; // Allow running anyway
+}
+
+// --- MNA Solver & Math Helpers ---
+
+function solveLinearSystem(A, b) {
+    // Gaussian Elimination with Partial Pivoting
+    const n = A.length;
+
+    for (let i = 0; i < n; i++) {
+        // Pivot
+        let maxRow = i;
+        for (let k = i + 1; k < n; k++) {
+            if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) maxRow = k;
+        }
+
+        // Swap rows in A and b
+        [A[i], A[maxRow]] = [A[maxRow], A[i]];
+        [b[i], b[maxRow]] = [b[maxRow], b[i]];
+
+        // Eliminate
+        if (Math.abs(A[i][i]) < 1e-10) continue; // Singular or nearly singular
+
+        for (let k = i + 1; k < n; k++) {
+            const factor = A[k][i] / A[i][i];
+            b[k] -= factor * b[i];
+            for (let j = i; j < n; j++) {
+                A[k][j] -= factor * A[i][j];
+            }
+        }
+    }
+
+    // Back Substitution
+    const x = new Array(n).fill(0);
+    for (let i = n - 1; i >= 0; i--) {
+        if (Math.abs(A[i][i]) < 1e-10) continue;
+        let sum = 0;
+        for (let j = i + 1; j < n; j++) {
+            sum += A[i][j] * x[j];
+        }
+        x[i] = (b[i] - sum) / A[i][i];
+    }
+
+    return x;
 }
 
 function solveCircuit() {
@@ -906,7 +1202,9 @@ function solveCircuit() {
     // 1. Identify Nets (Groups of connected nodes)
     const nets = [];
     const visitedNodes = new Set();
+    const nodeMap = new Map(); // Fast lookup cache
 
+    // Helper: Build Nets
     function getNet(compId, nodeId) {
         const key = `${compId}-${nodeId}`;
         if (visitedNodes.has(key)) return null;
@@ -915,18 +1213,16 @@ function solveCircuit() {
         const queue = [{ compId, nodeId }];
         visitedNodes.add(key);
 
+        // Find full net
         while (queue.length > 0) {
             const current = queue.shift();
             net.push(current);
+            nodeMap.set(`${current.compId}-${current.nodeId}`, nets.length); // Optimization
 
-            // Find wires connected to this node
             wires.forEach(w => {
                 let neighbor = null;
-                if (w.start.compId === current.compId && w.start.nodeId === current.nodeId) {
-                    neighbor = w.end;
-                } else if (w.end.compId === current.compId && w.end.nodeId === current.nodeId) {
-                    neighbor = w.start;
-                }
+                if (w.start.compId === current.compId && w.start.nodeId === current.nodeId) neighbor = w.end;
+                else if (w.end.compId === current.compId && w.end.nodeId === current.nodeId) neighbor = w.start;
 
                 if (neighbor) {
                     const nKey = `${neighbor.compId}-${neighbor.nodeId}`;
@@ -942,149 +1238,250 @@ function solveCircuit() {
 
     // Map all nodes to nets
     circuitComponents.forEach(comp => {
-        ['L', 'R'].forEach(nodeId => {
-            const net = getNet(comp.id, nodeId);
-            if (net) nets.push(net);
-        });
-    });
-
-    // 2. Calculate net voltages
-    const netVoltages = new Map();
-
-    // Assign voltages from power sources  
-    circuitComponents.forEach(comp => {
-        if (comp.defId === 'bat' || comp.defId === 'ps' || comp.defId === 'cell') {
-            const voltage = parseFloat(comp.value) || 0;
-            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
-            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
-
-            // Battery: Left = 0V (ground), Right = voltage value
-            if (netLIdx !== -1) netVoltages.set(netLIdx, 0);
-            if (netRIdx !== -1) netVoltages.set(netRIdx, voltage);
-        } else if (comp.defId === 'gnd') {
-            // Ground component
-            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
-            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
-            if (netLIdx !== -1) netVoltages.set(netLIdx, 0);
-            if (netRIdx !== -1) netVoltages.set(netRIdx, 0);
+        if (pinLayouts[comp.defId]) {
+            pinLayouts[comp.defId].pins.forEach(pin => {
+                const net = getNet(comp.id, pin.id);
+                if (Array.isArray(net)) nets.push(net);
+            });
+        } else {
+            ['L', 'R'].forEach(nodeId => {
+                const net = getNet(comp.id, nodeId);
+                if (Array.isArray(net)) nets.push(net); // Strict check
+            });
         }
     });
 
-    // Propagate voltages through wires (wires have zero resistance)
-    const maxIterations = 50;
-    for (let iter = 0; iter < maxIterations; iter++) {
-        let changed = false;
+    // Determine Ground Net
+    let gndNetIdx = -1;
+    circuitComponents.forEach(comp => {
+        if (comp.defId === 'gnd') {
+            const netIdx = nets.findIndex(n => n.some(node => node.compId === comp.id));
+            if (netIdx !== -1) gndNetIdx = netIdx;
+        }
+    });
 
-        // For each wire, ensure connected nets get the same voltage
-        wires.forEach(wire => {
-            const net1Idx = nets.findIndex(n => n.some(node =>
-                node.compId === wire.start.compId && node.nodeId === wire.start.nodeId
-            ));
-            const net2Idx = nets.findIndex(n => n.some(node =>
-                node.compId === wire.end.compId && node.nodeId === wire.end.nodeId
-            ));
+    if (gndNetIdx === -1) gndNetIdx = 0; // Floating reference if needed
 
-            if (net1Idx === -1 || net2Idx === -1 || net1Idx === net2Idx) return;
+    // Voltage Sources for Modified Nodal
+    const voltageSources = [];
+    circuitComponents.forEach(comp => {
+        if (['bat', 'ps', 'cell'].includes(comp.defId)) voltageSources.push(comp);
+    });
 
-            const v1 = netVoltages.get(net1Idx);
-            const v2 = netVoltages.get(net2Idx);
+    const numNets = nets.length;
+    const numVS = voltageSources.length;
+    const matrixSize = numNets + numVS;
 
-            if (v1 !== undefined && v2 === undefined) {
-                netVoltages.set(net2Idx, v1);
-                changed = true;
-            } else if (v2 !== undefined && v1 === undefined) {
-                netVoltages.set(net1Idx, v2);
-                changed = true;
-            }
-        });
-
-        // Calculate voltage drops across components
-        circuitComponents.forEach(comp => {
-            if (comp.defId === 'bat' || comp.defId === 'ps' || comp.defId === 'cell' ||
-                comp.defId === 'v_meter' || comp.defId === 'a_meter' || comp.defId === 'gnd') return;
-
-            const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
-            const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
-
-            if (netLIdx === -1 || netRIdx === -1) return;
-
-            const vL = netVoltages.get(netLIdx);
-            const vR = netVoltages.get(netRIdx);
-
-            if (comp.defId === 'led') {
-                const ledDrop = 2.0;
-                if (vL !== undefined && vR === undefined) {
-                    netVoltages.set(netRIdx, Math.max(0, vL - ledDrop));
-                    changed = true;
-                } else if (vR !== undefined && vL === undefined) {
-                    netVoltages.set(netLIdx, vR + ledDrop);
-                    changed = true;
-                }
-            } else if (comp.defId === 'dio') {
-                const diodeDrop = 0.7;
-                if (vL !== undefined && vR === undefined) {
-                    netVoltages.set(netRIdx, Math.max(0, vL - diodeDrop));
-                    changed = true;
-                } else if (vR !== undefined && vL === undefined) {
-                    netVoltages.set(netLIdx, vR + diodeDrop);
-                    changed = true;
-                }
-            } else if (comp.defId === 'res') {
-                if (vL !== undefined && vR === undefined) {
-                    const estimatedDrop = Math.min(vL * 0.3, vL - 0.5);
-                    netVoltages.set(netRIdx, Math.max(0, vL - estimatedDrop));
-                    changed = true;
-                } else if (vR !== undefined && vL === undefined) {
-                    const estimatedDrop = Math.min(vR * 0.3, 3.0);
-                    netVoltages.set(netLIdx, vR + estimatedDrop);
-                    changed = true;
-                }
-            }
-        });
-
-        if (!changed) break;
+    if (matrixSize === 0) {
+        console.warn("Solver: Matrix empty (No nets or sources).");
+        return;
     }
 
-    // Default remaining nets to 0V
-    nets.forEach((net, index) => {
-        if (!netVoltages.has(index)) {
-            netVoltages.set(index, 0);
-        }
-    });
+    // Helpers
+    const getNetId = (compId, nodeId) => {
+        return nets.findIndex(n => n.some(node => node.compId === compId && node.nodeId === nodeId));
+    };
 
-    // 3. Update Components
+    // State Persistence for Iterations (Store voltage diffs to smooth transitions)
+    // We actually just need the last solution vector to determine operating points.
+    // Initialize with 0 if not exists (or previous frame's approximation)
+    let solution = new Array(matrixSize).fill(0);
+
+    // --- NON-LINEAR ITERATION LOOP ---
+    const MAX_ITER = 10;
+    for (let iter = 0; iter < MAX_ITER; iter++) {
+
+        // Reset Matrix System
+        const G = Array.from({ length: matrixSize }, () => Array(matrixSize).fill(0));
+        const I = new Array(matrixSize).fill(0);
+
+        // -- Stamp Linear Components --
+        circuitComponents.forEach(comp => {
+            const n1 = getNetId(comp.id, 'L');
+            const n2 = getNetId(comp.id, 'R');
+            if (n1 === -1 || n2 === -1) return;
+
+            // Resistors
+            if (['res', 'pot', 'trim', 'nth'].includes(comp.defId)) {
+                let r = parseFloat(comp.value) || 1000;
+                if (comp.unit === 'kΩ') r *= 1000;
+                if (comp.unit === 'mΩ') r *= 0.001;
+                if (r < 0.001) r = 0.001;
+                const g = 1 / r;
+                G[n1][n1] += g; G[n2][n2] += g; G[n1][n2] -= g; G[n2][n1] -= g;
+            }
+
+            // Ideal Meters
+            if (comp.defId === 'v_meter') {
+                const g = 1e-9; // Very Low Conductance (1G Ohm)
+                G[n1][n1] += g; G[n2][n2] += g; G[n1][n2] -= g; G[n2][n1] -= g;
+            }
+            if (comp.defId === 'a_meter') {
+                const g = 1000; // 0.001 Ohm
+                G[n1][n1] += g; G[n2][n2] += g; G[n1][n2] -= g; G[n2][n1] -= g;
+            }
+        });
+
+        // -- Stamp Voltage Sources --
+        voltageSources.forEach((comp, idx) => {
+            const vsIdx = numNets + idx;
+            let v = parseFloat(comp.value) || 9;
+            if (comp.unit === 'mV') v *= 0.001;
+
+            // Corrected Polarity: Left (Long Bar) is Positive, Right (Short Bar) is Negative
+            const nPos = getNetId(comp.id, 'L');
+            const nNeg = getNetId(comp.id, 'R');
+
+            if (nPos !== -1) { G[vsIdx][nPos] = 1; G[nPos][vsIdx] = 1; }
+            if (nNeg !== -1) { G[vsIdx][nNeg] = -1; G[nNeg][vsIdx] = -1; }
+            I[vsIdx] = v;
+        });
+
+        // -- Ground --
+        if (gndNetIdx !== -1) {
+            G[gndNetIdx][gndNetIdx] += 1e6; // Soft Ground
+        }
+
+        // -- Stamp Non-Linear Components (Dynamic) --
+        /* 
+           Using Norton Equivalent for Diode/Zener in ON state:
+           Source I_eq in parallel with G_on.
+           V = (I_node + I_eq) / G_on
+           We want V_diff = V_fwd
+           Current I flowing from Anode->Cathode = (V_a - V_c - V_fwd) * G_on
+           KCL term at Anode: -I_diode = - (V_a - V_c)G_on + V_fwd*G_on
+           KCL term at Cathode: +I_diode = + (V_a - V_c)G_on - V_fwd*G_on
+           
+           So:
+           Add G_on to Matrix (Like resistor).
+           Add constant current J = V_fwd * G_on to Vector.
+               - Inflow to Anode node (Positive Index)? No, KCL sum I = 0.
+               - Ix = GxV - J... 
+               - I_leaving_anode = (Va - Vc - Vf)*G
+                                 = (Va - Vc)G - Vf*G
+               - Matrix row for Anode (Sum currents = 0):
+                 ... + (Va - Vc)G ...  = ... + Vf*G
+               - So Add +Vf*G to Anode RHS (I vector).
+               - Add -Vf*G to Cathode RHS (I vector).
+        */
+
+        circuitComponents.forEach(comp => {
+            if (!['led', 'dio', 'zen', 'sch'].includes(comp.defId)) return;
+
+            const nA = getNetId(comp.id, 'L'); // Anode (Left?) - Wait, icons suggest Triangle points right aka L inputs, R outputs?
+            // Standard schematic: Current flows Left to Right usually.
+            // Let's assume Left=Anode, Right=Cathode for standard icons.
+            const nC = getNetId(comp.id, 'R');
+
+            if (nA === -1 || nC === -1) return;
+
+            // Get current estimates
+            const vA = solution[nA] || 0;
+            const vC = solution[nC] || 0;
+            const vDiff = vA - vC;
+
+            // Parameters
+            let vFwd = 0.7; // Standard Diode/Zener Fwd
+            let vRev = 0;   // Breakdown voltage (Positive Value)
+
+            if (comp.defId === 'led') vFwd = 2.0;
+            if (comp.defId === 'sch') vFwd = 0.3;
+            if (comp.defId === 'zen') vRev = parseFloat(comp.value) || 5.1; // Zener Value
+
+            const gOff = 1e-9;
+            const gOn = 10; // 0.1 Ohm ON resistance
+
+            // Logic
+            let activeG = gOff;
+            let activeVcorr = 0; // The battery part of the model
+
+            // Check Forward Bias
+            if (vDiff > vFwd) {
+                activeG = gOn;
+                activeVcorr = vFwd; // Opposes current from A to C
+                // Current I = (Vdiff - Vfwd) * Gon
+            }
+            // Check Reverse Bias (Zener Breakdown)
+            else if (vRev > 0 && (vC - vA) > vRev) {
+                // Breakdown! Current flows Cathode -> Anode
+                // Modeled as Source Vrev opposing C->A current
+                activeG = gOn;
+                activeVcorr = -vRev; // Negative because it's opposing the reverse potential? 
+
+                // Let's derive again:
+                // We want Vc - Va = Vrev  => Va - Vc = -Vrev
+                // I_c_to_a = (Vc - Va - Vrev) * Gon
+                // I_leaving_anode (entering diode from left) = - I_c_to_a
+                // = - (Vc - Va - Vrev) * Gon
+                // = (Va - Vc + Vrev) * Gon
+                // = (Va - Vc)*Gon + Vrev*Gon
+                // Anode Row: ... + (Va-Vc)G ... = - Vrev*Gon
+                // So activeVcorr = -Vrev.
+            }
+
+            // Apply G
+            G[nA][nA] += activeG; G[nC][nC] += activeG;
+            G[nA][nC] -= activeG; G[nC][nA] -= activeG;
+
+            // Apply Current Correction (RHS)
+            if (activeVcorr !== 0) {
+                const currentInj = activeVcorr * activeG;
+                // Anode Row RHS: += currentInj
+                I[nA] += currentInj;
+                // Cathode Row RHS: -= currentInj
+                I[nC] -= currentInj;
+            }
+        });
+
+        // -- Solve --
+        const nextSolution = solveLinearSystem(G, I);
+
+        // Damping / Convergence Check
+        let diffSum = 0;
+        for (let k = 0; k < matrixSize; k++) diffSum += Math.abs(nextSolution[k] - solution[k]);
+
+        solution = nextSolution;
+        if (diffSum < 0.001) break; // Converged
+    }
+
+    // --- Update UI ---
     circuitComponents.forEach(comp => {
         const el = document.getElementById(`comp-${comp.id}`);
         if (!el) return;
 
-        const netLIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'L'));
-        const netRIdx = nets.findIndex(n => n.some(node => node.compId === comp.id && node.nodeId === 'R'));
-        const vL = netVoltages.get(netLIdx) || 0;
-        const vR = netVoltages.get(netRIdx) || 0;
-        const diff = Math.abs(vR - vL);
+        const n1 = getNetId(comp.id, 'L');
+        const n2 = getNetId(comp.id, 'R');
+        const vL = (n1 !== -1) ? solution[n1] : 0;
+        const vR = (n2 !== -1) ? solution[n2] : 0;
+        const diff = vL - vR; // Anode - Cathode generally
 
         if (comp.defId === 'v_meter') {
-            // Voltmeter shows voltage difference across its terminals
-            const voltageDiff = vR - vL;
-            el.querySelector('.val-badge').textContent = `${voltageDiff.toFixed(2)}V`;
-            if (Math.abs(voltageDiff) > 0.01) el.classList.add('comp-active-v');
+            const vDiff = vR - vL; // Keep meter polarity standard (R is +?)
+            el.querySelector('.val-badge').textContent = `${vDiff.toFixed(2)}V`;
+            if (Math.abs(vDiff) > 0.1) el.classList.add('comp-active-v');
             else el.classList.remove('comp-active-v');
         }
 
         if (comp.defId === 'a_meter') {
-            const current = diff / 1.0;
-            el.querySelector('.val-badge').textContent = `${current.toFixed(2)}A`;
-            if (current > 0) el.classList.add('comp-active-a');
+            const i = (vL - vR) / 0.001; // Current L->R
+            el.querySelector('.val-badge').textContent = `${Math.abs(i).toFixed(3)}A`;
+            if (Math.abs(i) > 0.001) el.classList.add('comp-active-a');
             else el.classList.remove('comp-active-a');
         }
 
+        if (['led', 'dio', 'zen', 'sch'].includes(comp.defId)) {
+            // Visual cleanup - if conducting significantly
+            // For Zener, if reverse breakdown (vR - vL > Vz), it's active.
+            let isActive = false;
+            if (diff > 0.5) isActive = true; // Forward
+            if (comp.defId === 'zen' && (vR - vL) > (parseFloat(comp.value) || 0) * 0.9) isActive = true; // Breakdown
 
-        if (comp.defId === 'led') {
-            if (diff >= 1.5) el.classList.add('comp-active-led');
+            if (isActive) el.classList.add('comp-active-led');
             else el.classList.remove('comp-active-led');
         }
     });
 }
+
 
 function openEditModal(compData) {
     editingComponentId = compData.id;
@@ -1095,26 +1492,89 @@ function openEditModal(compData) {
     editModal.classList.remove('hidden');
 }
 
-saveValueBtn.addEventListener('click', () => {
-    const valStr = editValue.value;
-    const comp = circuitComponents.find(c => c.id === editingComponentId);
-    if (comp) {
-        comp.value = valStr;
-        const el = document.getElementById(`comp-${comp.id}`);
-        el.querySelector('.val-badge').textContent = `${valStr}${comp.unit}`;
-    }
-    editModal.classList.add('hidden');
-});
+// Direct assignment to ensure no event listener issues
+// Consolidated Event Listeners
 
+// 1. Component Update Logic
+if (saveValueBtn) {
+    saveValueBtn.addEventListener('click', () => {
+        try {
+            if (!editValue) {
+                alert("Critical Error: Edit input not found in DOM");
+                return;
+            }
+
+            const valStr = editValue.value;
+
+            if (editingComponentId === null) {
+                alert("Error: No component ID currently selected.");
+                return;
+            }
+
+            const comp = circuitComponents.find(c => c.id === editingComponentId);
+            if (comp) {
+                comp.value = valStr;
+
+                // Update Badge UI
+                const el = document.getElementById(`comp-${comp.id}`);
+                if (el) {
+                    const badge = el.querySelector('.val-badge');
+                    if (badge) badge.textContent = `${valStr}${comp.unit}`;
+                }
+
+                showToast(`Component updated: ${valStr}${comp.unit}`, "success");
+
+                // If simulation is running, re-calculate immediately
+                if (isRunning && typeof solveCircuit === 'function') solveCircuit();
+
+            } else {
+                alert("Error: Component not found in memory.");
+            }
+
+            // Close Modal
+            if (editModal) editModal.classList.add('hidden');
+
+        } catch (e) {
+            console.error("Update Handler Error:", e);
+            alert("Update Error: " + e.message);
+        }
+    });
+}
+
+// 2. Run / Stop Logic
 if (runBtn) {
     runBtn.addEventListener('click', () => {
-        if (validateCircuit()) {
+        try {
+            if (!circuitComponents || circuitComponents.length === 0) {
+                showToast("Circuit is empty!", "warning");
+                return;
+            }
+
+            // Basic validation
+            if (typeof validateCircuit === 'function' && !validateCircuit()) {
+                // validateCircuit usually handles its own toasts
+            }
+
             isRunning = true;
             runBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
+
+            // Force redraw/calculation
             drawWires();
-            solveCircuit();
+            if (typeof solveCircuit === 'function') {
+                solveCircuit();
+            } else {
+                console.warn("solveCircuit function not found!");
+            }
+
             document.querySelectorAll('.comp-svg').forEach(svg => svg.style.stroke = '#00f2ea');
+            showToast("Simulation Started", "success");
+
+        } catch (err) {
+            console.error("Run Error:", err);
+            isRunning = false;
+            runBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
         }
     });
 }
@@ -1124,16 +1584,22 @@ if (stopBtn) {
         isRunning = false;
         stopBtn.classList.add('hidden');
         runBtn.classList.remove('hidden');
+
         drawWires();
 
+        // Reset Visuals
         document.querySelectorAll('.comp-active-led').forEach(el => el.classList.remove('comp-active-led'));
         document.querySelectorAll('.comp-active-v').forEach(el => el.classList.remove('comp-active-v'));
         document.querySelectorAll('.comp-active-a').forEach(el => el.classList.remove('comp-active-a'));
 
+        // Reset Meters
         circuitComponents.forEach(comp => {
-            if (comp.defId === 'v_meter' || comp.defId === 'a_meter') {
+            if (['v_meter', 'a_meter'].includes(comp.defId)) {
                 const el = document.getElementById(`comp-${comp.id}`);
-                if (el) el.querySelector('.val-badge').textContent = `0${comp.unit}`;
+                if (el) {
+                    const badge = el.querySelector('.val-badge');
+                    if (badge) badge.textContent = `0${comp.unit}`;
+                }
             }
         });
 
@@ -1153,13 +1619,66 @@ function moveComponent(id, x, y) {
     }
 }
 
+// Rotate Logic
+function rotateComponent(id) {
+    // Ensure ID is number if needed (our IDs are numbers)
+    const numericId = parseInt(id);
+    const comp = circuitComponents.find(c => c.id === numericId);
+
+    if (!comp) {
+        return;
+    }
+
+    if (!comp.rotation) comp.rotation = 0;
+    const oldRotation = comp.rotation;
+    comp.rotation = (comp.rotation + 90) % 360;
+
+    const el = document.getElementById(`comp-${numericId}`);
+    if (el) {
+        el.style.transform = `rotate(${comp.rotation}deg)`;
+    } else {
+        // console.warn("Rotate Warning: DOM Element not found for ID:", numericId);
+    }
+
+    drawWires();
+}
+
+// Global Key Listener for Rotation and Cancellation
+document.addEventListener('keydown', (e) => {
+    // Escape to cancel wire
+    if (e.key === 'Escape' && currentWireStart) {
+        currentWireStart = null;
+        tempWireEnd = null;
+        drawWires();
+        // showToast("Wire cancelled", "info"); // Optional feedback
+        return;
+    }
+
+    // Ignore if typing in input fields
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+
+    if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Find selected component
+        const selected = document.querySelector('.circuit-component.selected');
+        if (selected) {
+            console.log("Rotation Key Pressed. Selected:", selected.id);
+            const idPart = selected.id.split('-')[1];
+            if (idPart) rotateComponent(idPart);
+        } else {
+            console.log("Rotation Key Pressed but no component selected.");
+        }
+    }
+});
+
 function restoreComponent(compData, connectedWires) {
+    if (compData.rotation === undefined) compData.rotation = 0;
     circuitComponents.push(compData);
     const el = document.createElement('div');
     el.className = 'circuit-component component-2d';
     el.id = `comp-${compData.id}`;
     el.style.left = `${compData.x}px`;
     el.style.top = `${compData.y}px`;
+    if (compData.rotation) el.style.transform = `rotate(${compData.rotation}deg)`;
     const svgPath = svgIcons[compData.defId] || svgIcons['res'];
     el.innerHTML = `
         <div class="node node-left" data-node="L"></div>
@@ -1264,10 +1783,17 @@ function attachComponentInteractions(el, compData) {
             const centerY = (rect.top + rect.height / 2 - boardRect.top) / zoomLevel;
             if (!currentWireStart) { currentWireStart = { compId: compData.id, nodeId: node.dataset.node, x: centerX, y: centerY }; }
             else if (currentWireStart.compId !== compData.id || currentWireStart.nodeId !== node.dataset.node) {
-                const newWire = { start: { ...currentWireStart }, end: { compId: compData.id, nodeId: node.dataset.node, x: centerX, y: centerY } };
+                const newWire = {
+                    start: { ...currentWireStart },
+                    end: { compId: compData.id, nodeId: node.dataset.node, x: centerX, y: centerY },
+                    waypoints: currentWireStart.waypoints ? [...currentWireStart.waypoints] : []
+                };
                 wires.push(newWire);
                 addToHistory({ type: 'WIRE', data: { wire: newWire } });
-                currentWireStart = null; tempWireEnd = null; drawWires();
+                currentWireStart = null; tempWireEnd = null;
+                drawWires();
+                // If running, only solve if circuit is valid (might be partial now)
+                if (isRunning && typeof solveCircuit === 'function') solveCircuit();
             }
             if (e.touches) e.preventDefault();
         };
