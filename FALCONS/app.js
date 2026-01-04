@@ -316,11 +316,11 @@ const pinLayouts = {
             { id: 'D0', x: 120, y: 10 }, { id: 'D1', x: 112, y: 10 }, { id: 'D2', x: 104, y: 10 }, { id: 'D3', x: 96, y: 10 },
             { id: 'D4', x: 88, y: 10 }, { id: 'D5', x: 80, y: 10 }, { id: 'D6', x: 72, y: 10 }, { id: 'D7', x: 64, y: 10 },
             { id: 'D8', x: 54, y: 10 }, { id: 'D9', x: 46, y: 10 }, { id: 'D10', x: 38, y: 10 }, { id: 'D11', x: 30, y: 10 },
-            { id: 'D12', x: 22, y: 10 }, { id: 'D13', x: 14, y: 10 }, { id: 'GND1', x: 6, y: 10 }, { id: 'AREF', x: 0, y: 10 },
+            { id: 'D12', x: 22, y: 10 }, { id: 'D13', x: 14, y: 10 }, { id: 'GROUND', x: 6, y: 10 }, { id: 'AREF', x: 0, y: 10 },
             // Bottom Header (Power + Analog)
             // Power
-            { id: 'RST', x: 30, y: 90 }, { id: '3V3', x: 38, y: 90 }, { id: '5V', x: 46, y: 90 },
-            { id: 'GND2', x: 54, y: 90 }, { id: 'GND3', x: 62, y: 90 }, { id: 'VIN', x: 70, y: 90 },
+            { id: 'RST', x: 30, y: 90 }, { id: 'VCC3.3V', x: 38, y: 90 }, { id: 'VCC5V', x: 46, y: 90 },
+            { id: 'GROUND1', x: 54, y: 90 }, { id: 'GROUND2', x: 62, y: 90 }, { id: 'VIN', x: 70, y: 90 },
             // Analog
             { id: 'A0', x: 86, y: 90 }, { id: 'A1', x: 94, y: 90 }, { id: 'A2', x: 102, y: 90 },
             { id: 'A3', x: 110, y: 90 }, { id: 'A4', x: 118, y: 90 }, { id: 'A5', x: 126, y: 90 }
@@ -330,14 +330,14 @@ const pinLayouts = {
         width: 80, height: 120,
         pins: [
             // Left Row (Top to Bottom)
-            { id: 'D13', x: 5, y: 10 }, { id: '3V3', x: 5, y: 18 }, { id: 'REF', x: 5, y: 26 }, { id: 'A0', x: 5, y: 34 },
+            { id: 'D13', x: 5, y: 10 }, { id: 'VCC3.3V', x: 5, y: 18 }, { id: 'REF', x: 5, y: 26 }, { id: 'A0', x: 5, y: 34 },
             { id: 'A1', x: 5, y: 42 }, { id: 'A2', x: 5, y: 50 }, { id: 'A3', x: 5, y: 58 }, { id: 'A4', x: 5, y: 66 },
-            { id: 'A5', x: 5, y: 74 }, { id: 'A6', x: 5, y: 82 }, { id: 'A7', x: 5, y: 90 }, { id: '5V', x: 5, y: 98 },
-            { id: 'RST', x: 5, y: 106 }, { id: 'GND1', x: 5, y: 114 },
+            { id: 'A5', x: 5, y: 74 }, { id: 'A6', x: 5, y: 82 }, { id: 'A7', x: 5, y: 90 }, { id: 'VCC5V', x: 5, y: 98 },
+            { id: 'RST', x: 5, y: 106 }, { id: 'GROUND', x: 5, y: 114 },
             // Right Row (Top to Bottom)
             { id: 'D12', x: 75, y: 10 }, { id: 'D11', x: 75, y: 18 }, { id: 'D10', x: 75, y: 26 }, { id: 'D9', x: 75, y: 34 },
             { id: 'D8', x: 75, y: 42 }, { id: 'D7', x: 75, y: 50 }, { id: 'D6', x: 75, y: 58 }, { id: 'D5', x: 75, y: 66 },
-            { id: 'D4', x: 75, y: 74 }, { id: 'D3', x: 75, y: 82 }, { id: 'D2', x: 75, y: 90 }, { id: 'GND2', x: 75, y: 98 },
+            { id: 'D4', x: 75, y: 74 }, { id: 'D3', x: 75, y: 82 }, { id: 'D2', x: 75, y: 90 }, { id: 'GROUND1', x: 75, y: 98 },
             { id: 'RST2', x: 75, y: 106 }, { id: 'TX', x: 75, y: 114 }
         ]
     },
@@ -345,15 +345,15 @@ const pinLayouts = {
         width: 90, height: 130,
         pins: [
             // Left Row
-            { id: 'EN', x: 5, y: 10 }, { id: 'VP', x: 5, y: 18 }, { id: 'VN', x: 5, y: 26 }, { id: '34', x: 5, y: 34 },
-            { id: '35', x: 5, y: 42 }, { id: '32', x: 5, y: 50 }, { id: '33', x: 5, y: 58 }, { id: '25', x: 5, y: 66 },
-            { id: '26', x: 5, y: 74 }, { id: '27', x: 5, y: 82 }, { id: '14', x: 5, y: 90 }, { id: '12', x: 5, y: 98 },
-            { id: 'GND1', x: 5, y: 106 }, { id: '13', x: 5, y: 114 }, { id: 'D2', x: 5, y: 122 },
+            { id: 'EN', x: 5, y: 10 }, { id: 'VP', x: 5, y: 18 }, { id: 'VN', x: 5, y: 26 }, { id: 'D34', x: 5, y: 34 },
+            { id: 'D35', x: 5, y: 42 }, { id: 'D32', x: 5, y: 50 }, { id: 'D33', x: 5, y: 58 }, { id: 'D25', x: 5, y: 66 },
+            { id: 'D26', x: 5, y: 74 }, { id: 'D27', x: 5, y: 82 }, { id: 'D14', x: 5, y: 90 }, { id: 'D12', x: 5, y: 98 },
+            { id: 'GROUND', x: 5, y: 106 }, { id: 'D13', x: 5, y: 114 }, { id: 'D2', x: 5, y: 122 },
             // Right Row
-            { id: '23', x: 85, y: 10 }, { id: '22', x: 85, y: 18 }, { id: 'TX', x: 85, y: 26 }, { id: 'RX', x: 85, y: 34 },
-            { id: '21', x: 85, y: 42 }, { id: 'GND2', x: 85, y: 50 }, { id: '19', x: 85, y: 58 }, { id: '18', x: 85, y: 66 },
-            { id: '5', x: 85, y: 74 }, { id: '17', x: 85, y: 82 }, { id: '16', x: 85, y: 90 }, { id: '4', x: 85, y: 98 },
-            { id: '0', x: 85, y: 106 }, { id: '2', x: 85, y: 114 }, { id: '15', x: 85, y: 122 }
+            { id: 'D23', x: 85, y: 10 }, { id: 'D22', x: 85, y: 18 }, { id: 'TX0', x: 85, y: 26 }, { id: 'RX0', x: 85, y: 34 },
+            { id: 'D21', x: 85, y: 42 }, { id: 'GROUND1', x: 85, y: 50 }, { id: 'D19', x: 85, y: 58 }, { id: 'D18', x: 85, y: 66 },
+            { id: 'D5', x: 85, y: 74 }, { id: 'D17', x: 85, y: 82 }, { id: 'D16', x: 85, y: 90 }, { id: 'D4', x: 85, y: 98 },
+            { id: 'D0', x: 85, y: 106 }, { id: 'D2', x: 85, y: 114 }, { id: 'D15', x: 85, y: 122 }
         ]
     },
     'mega': {
@@ -364,9 +364,9 @@ const pinLayouts = {
             { id: 'D0', x: 140, y: 10 }, { id: 'D1', x: 132, y: 10 }, { id: 'D2', x: 124, y: 10 }, { id: 'D3', x: 116, y: 10 },
             { id: 'D4', x: 108, y: 10 }, { id: 'D5', x: 100, y: 10 }, { id: 'D6', x: 92, y: 10 }, { id: 'D7', x: 84, y: 10 },
             { id: 'D8', x: 70, y: 10 }, { id: 'D9', x: 62, y: 10 }, { id: 'D10', x: 54, y: 10 }, { id: 'D11', x: 46, y: 10 },
-            { id: 'D12', x: 38, y: 10 }, { id: 'D13', x: 30, y: 10 }, { id: 'GND', x: 20, y: 10 },
+            { id: 'D12', x: 38, y: 10 }, { id: 'D13', x: 30, y: 10 }, { id: 'GROUND', x: 20, y: 10 },
             // Bottom
-            { id: '5V', x: 40, y: 100 }, { id: '3V3', x: 30, y: 100 }, { id: 'GND2', x: 50, y: 100 },
+            { id: 'VCC5V', x: 40, y: 100 }, { id: 'VCC3.3V', x: 30, y: 100 }, { id: 'GROUND1', x: 50, y: 100 },
             { id: 'A0', x: 80, y: 100 }, { id: 'A1', x: 88, y: 100 }, { id: 'A2', x: 96, y: 100 }, { id: 'A3', x: 104, y: 100 },
             { id: 'A4', x: 112, y: 100 }, { id: 'A5', x: 120, y: 100 }, { id: 'A8', x: 135, y: 100 }, { id: 'A15', x: 190, y: 100 }
         ]
@@ -583,6 +583,19 @@ styleSheet.innerText = `
     /* Hide old node-left/node-right default positioning since we use explicit top/left now */
     .component-2d .node-left, .component-2d .node-right {
         position: absolute; 
+    }
+    .pin-label {
+        position: absolute;
+        font-size: 6px;
+        color: #ffaa00;
+        pointer-events: none;
+        white-space: nowrap;
+        background: rgba(0,0,0,0.6);
+        padding: 1px 2px;
+        border-radius: 2px;
+        z-index: 101;
+        transform: translate(-50%, -100%);
+        margin-top: -5px;
     }
 `;
 document.head.appendChild(styleSheet);
@@ -1188,7 +1201,9 @@ function addComponentToCanvas(compDef, x, y) {
         // The getPinLayout function already handles coordinate definition
         nodesHTML += `<div class="node" data-node="${pin.id}" 
             style="left: ${pin.x}px; top: ${pin.y}px;" 
-            title="${pin.id}"></div>`;
+            title="${pin.id}">
+            <span class="pin-label" style="left: 0; top: 0;">${pin.id}</span>
+        </div>`;
     });
 
     el.innerHTML = `
