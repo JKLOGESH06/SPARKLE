@@ -452,6 +452,36 @@ const pinLayouts = {
             { id: 'VCC', x: 5, y: 45 }, { id: 'GND', x: 13, y: 45 }, { id: 'SCL', x: 21, y: 45 }, { id: 'SDA', x: 29, y: 45 },
             { id: 'XDA', x: 37, y: 45 }, { id: 'XCL', x: 45, y: 45 }, { id: 'AD0', x: 53, y: 45 }, { id: 'INT', x: 61, y: 45 }
         ]
+    },
+    'max3014': {
+        width: 80, height: 60,
+        pins: [
+            { id: 'VDD', x: 10, y: 5 }, { id: 'GND', x: 30, y: 5 },
+            { id: 'IN+', x: 10, y: 55 }, { id: 'IN-', x: 30, y: 55 },
+            { id: 'OUTL', x: 50, y: 55 }, { id: 'OUTR', x: 70, y: 55 }
+        ]
+    },
+    'hc501': {
+        width: 60, height: 50,
+        pins: [{ id: 'VCC', x: 10, y: 45 }, { id: 'OUT', x: 30, y: 45 }, { id: 'GND', x: 50, y: 45 }]
+    },
+    'mq': {
+        width: 60, height: 50,
+        pins: [
+            { id: 'VCC', x: 10, y: 45 }, { id: 'GND', x: 25, y: 45 },
+            { id: 'D0', x: 40, y: 45 }, { id: 'A0', x: 55, y: 45 }
+        ]
+    },
+    'p_amp': {
+        width: 60, height: 40,
+        pins: [
+            { id: 'VCC', x: 10, y: 5 }, { id: 'GND', x: 30, y: 5 },
+            { id: 'IN', x: 5, y: 20 }, { id: 'OUT', x: 55, y: 20 }
+        ]
+    },
+    'ant': {
+        width: 40, height: 40,
+        pins: [{ id: 'ANT', x: 20, y: 35 }]
     }
 };
 
@@ -482,8 +512,14 @@ function getPinLayout(compDef) {
 
     // 4. Sensors/Modules (Generic 3 or 4 pin)
     if (compDef.type === 'sensor' || compDef.type === 'mcu' || compDef.type === 'rf' || compDef.type === 'output') {
+        // MQ Gas Sensors
+        if (compDef.id.startsWith('mq')) return pinLayouts['mq'];
+
+        // RF Antennas
+        if (compDef.id.startsWith('ant')) return pinLayouts['ant'];
+
         // I2C or typical 4-pin
-        if (['bmp180', 'bme280', 'tsl', 'bh17', 'sht31', 'max98', 'vl53', 'atsha', 'max3014'].includes(compDef.id)) {
+        if (['bmp180', 'bme280', 'tsl', 'bh17', 'sht31', 'max98', 'vl53', 'atsha', 'ky37'].includes(compDef.id)) {
             return {
                 width: 60, height: 50,
                 pins: [
@@ -516,11 +552,14 @@ function getPinLayout(compDef) {
     }
 
     // 6. Standard 2-Pin (Res, Cap, LED, Bat, etc.)
+    const posLabel = ['bat', 'ps', 'cell', 'led', 'dio', 'zen', 'sch', 'buz', 'spk'].includes(compDef.id) ? '+' : 'L';
+    const negLabel = ['bat', 'ps', 'cell', 'led', 'dio', 'zen', 'sch', 'buz', 'spk'].includes(compDef.id) ? '-' : 'R';
+
     return {
         width: 60, height: 40,
         pins: [
-            { id: 'L', x: 0, y: 20 },
-            { id: 'R', x: 60, y: 20 }
+            { id: posLabel, x: 0, y: 20 },
+            { id: negLabel, x: 60, y: 20 }
         ]
     };
 }
@@ -1438,8 +1477,10 @@ function solveCircuit() {
 
             // Resistors (Standard 2-pin)
             if (['res', 'ind', 'led', 'dio', 'zen', 'sch', 'sw', 'nth'].includes(comp.defId)) {
-                const n1 = getNetId(comp.id, 'L');
-                const n2 = getNetId(comp.id, 'R');
+                const n1 = getNetId(comp.id, 'L') !== -1 ? getNetId(comp.id, 'L') : getNetId(comp.id, '+');
+                const n2 = getNetId(comp.id, 'R') !== -1 ? getNetId(comp.id, 'R') : getNetId(comp.id, '-');
+                if (n1 === -1 || n2 === -1) return;
+
                 let r = parseFloat(comp.value) || 1000;
                 if (comp.unit === 'kΩ') r *= 1000;
                 if (comp.unit === 'MΩ') r *= 1000000;
@@ -1474,10 +1515,14 @@ function solveCircuit() {
 
             // Ideal Meters
             if (comp.defId === 'v_meter') {
-                stampResistor(getNetId(comp.id, 'L'), getNetId(comp.id, 'R'), 1e9);
+                const n1 = getNetId(comp.id, 'L') !== -1 ? getNetId(comp.id, 'L') : getNetId(comp.id, '+');
+                const n2 = getNetId(comp.id, 'R') !== -1 ? getNetId(comp.id, 'R') : getNetId(comp.id, '-');
+                stampResistor(n1, n2, 1e9);
             }
             if (comp.defId === 'a_meter') {
-                stampResistor(getNetId(comp.id, 'L'), getNetId(comp.id, 'R'), 0.001);
+                const n1 = getNetId(comp.id, 'L') !== -1 ? getNetId(comp.id, 'L') : getNetId(comp.id, '+');
+                const n2 = getNetId(comp.id, 'R') !== -1 ? getNetId(comp.id, 'R') : getNetId(comp.id, '-');
+                stampResistor(n1, n2, 0.001);
             }
         });
 
@@ -1487,8 +1532,8 @@ function solveCircuit() {
             let v = parseFloat(comp.value) || 9;
             if (comp.unit === 'mV') v *= 0.001;
 
-            const nPos = getNetId(comp.id, 'L');
-            const nNeg = getNetId(comp.id, 'R');
+            const nPos = getNetId(comp.id, 'L') !== -1 ? getNetId(comp.id, 'L') : getNetId(comp.id, '+');
+            const nNeg = getNetId(comp.id, 'R') !== -1 ? getNetId(comp.id, 'R') : getNetId(comp.id, '-');
 
             if (nPos !== -1) { G[vsIdx][nPos] = 1; G[nPos][vsIdx] = 1; }
             if (nNeg !== -1) { G[vsIdx][nNeg] = -1; G[nNeg][vsIdx] = -1; }
@@ -1526,8 +1571,8 @@ function solveCircuit() {
         circuitComponents.forEach(comp => {
             // Diodes/LEDs
             if (['led', 'dio', 'zen', 'sch'].includes(comp.defId)) {
-                const nA = getNetId(comp.id, 'L');
-                const nC = getNetId(comp.id, 'R');
+                const nA = getNetId(comp.id, 'L') !== -1 ? getNetId(comp.id, 'L') : getNetId(comp.id, '+');
+                const nC = getNetId(comp.id, 'R') !== -1 ? getNetId(comp.id, 'R') : getNetId(comp.id, '-');
                 if (nA === -1 || nC === -1) return;
 
                 const vDiff = (solution[nA] || 0) - (solution[nC] || 0);
