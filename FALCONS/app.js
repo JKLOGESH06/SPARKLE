@@ -1323,25 +1323,10 @@ function showToast(message, type = 'error') {
 }
 
 function validateCircuit() {
-    let isValid = true;
+    // Connection checking removed per user request to allow flexible pin connections.
+    // The solver handles unconnected pins by ignoring them in the net grouping.
     document.querySelectorAll('.circuit-component').forEach(el => el.classList.remove('connection-error'));
-
-    circuitComponents.forEach(comp => {
-        const hasLeftConnection = wires.some(w => (w.start.compId === comp.id && w.start.nodeId === 'L') || (w.end.compId === comp.id && w.end.nodeId === 'L'));
-        const hasRightConnection = wires.some(w => (w.start.compId === comp.id && w.start.nodeId === 'R') || (w.end.compId === comp.id && w.end.nodeId === 'R'));
-
-        if (!hasLeftConnection || !hasRightConnection) {
-            isValid = false;
-            const el = document.getElementById(`comp-${comp.id}`);
-            if (el) el.classList.add('connection-error');
-        }
-    });
-
-    if (!isValid) {
-        showToast("Warning: Open circuit pins detected. Simulation continues.", "warning");
-    }
-
-    return true; // Allow running anyway
+    return true;
 }
 
 // --- MNA Solver & Math Helpers ---
