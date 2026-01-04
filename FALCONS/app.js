@@ -370,12 +370,94 @@ const pinLayouts = {
             { id: 'A0', x: 80, y: 100 }, { id: 'A1', x: 88, y: 100 }, { id: 'A2', x: 96, y: 100 }, { id: 'A3', x: 104, y: 100 },
             { id: 'A4', x: 112, y: 100 }, { id: 'A5', x: 120, y: 100 }, { id: 'A8', x: 135, y: 100 }, { id: 'A15', x: 190, y: 100 }
         ]
+    },
+    'ic': {
+        width: 80, height: 60,
+        pins: [
+            { id: 'GND', x: 10, y: 55 }, { id: 'TRIG', x: 30, y: 55 }, { id: 'OUT', x: 50, y: 55 }, { id: 'RESET', x: 70, y: 55 },
+            { id: 'VCC', x: 70, y: 5 }, { id: 'DISCH', x: 50, y: 5 }, { id: 'THRES', x: 30, y: 5 }, { id: 'CTRL', x: 10, y: 5 }
+        ]
+    },
+    'rel': {
+        width: 60, height: 40,
+        pins: [
+            { id: 'C1', x: 5, y: 10 }, { id: 'C2', x: 5, y: 30 },
+            { id: 'COM', x: 55, y: 20 }, { id: 'NO', x: 55, y: 5 }, { id: 'NC', x: 55, y: 35 }
+        ]
+    },
+    'trf': {
+        width: 60, height: 40,
+        pins: [
+            { id: 'P1', x: 0, y: 10 }, { id: 'P2', x: 0, y: 30 },
+            { id: 'S1', x: 60, y: 10 }, { id: 'S2', x: 60, y: 30 }
+        ]
+    },
+    'trf_ct': {
+        width: 60, height: 40,
+        pins: [
+            { id: 'P1', x: 0, y: 10 }, { id: 'P2', x: 0, y: 30 },
+            { id: 'S1', x: 60, y: 5 }, { id: 'CT', x: 60, y: 20 }, { id: 'S2', x: 60, y: 35 }
+        ]
+    },
+    'rgb': {
+        width: 60, height: 60,
+        pins: [
+            { id: 'R', x: 10, y: 55 }, { id: 'K', x: 25, y: 55 }, { id: 'G', x: 40, y: 55 }, { id: 'B', x: 55, y: 55 }
+        ]
+    },
+    'lcd': {
+        width: 160, height: 80,
+        pins: [
+            { id: 'VSS', x: 10, y: 5 }, { id: 'VDD', x: 20, y: 5 }, { id: 'V0', x: 30, y: 5 }, { id: 'RS', x: 40, y: 5 },
+            { id: 'RW', x: 50, y: 5 }, { id: 'E', x: 60, y: 5 }, { id: 'D0', x: 70, y: 5 }, { id: 'D1', x: 80, y: 5 },
+            { id: 'D2', x: 90, y: 5 }, { id: 'D3', x: 100, y: 5 }, { id: 'D4', x: 110, y: 5 }, { id: 'D5', x: 120, y: 5 },
+            { id: 'D6', x: 130, y: 5 }, { id: 'D7', x: 140, y: 5 }, { id: 'A', x: 150, y: 5 }, { id: 'K', x: 160, y: 5 }
+        ]
+    },
+    'oled': {
+        width: 60, height: 40,
+        pins: [
+            { id: 'GND', x: 15, y: 5 }, { id: 'VCC', x: 25, y: 5 }, { id: 'SCL', x: 35, y: 5 }, { id: 'SDA', x: 45, y: 5 }
+        ]
+    },
+    'pot': {
+        width: 60, height: 40,
+        pins: [{ id: '1', x: 10, y: 35 }, { id: '2', x: 30, y: 35 }, { id: '3', x: 50, y: 35 }]
+    },
+    'trim': {
+        width: 40, height: 40,
+        pins: [{ id: '1', x: 5, y: 35 }, { id: '2', x: 20, y: 35 }, { id: '3', x: 35, y: 35 }]
+    },
+    'hcsr04': {
+        width: 80, height: 40,
+        pins: [
+            { id: 'VCC', x: 20, y: 35 }, { id: 'TRIG', x: 30, y: 35 }, { id: 'ECHO', x: 50, y: 35 }, { id: 'GND', x: 60, y: 35 }
+        ]
+    },
+    'dht11': {
+        width: 40, height: 50,
+        pins: [
+            { id: 'VCC', x: 5, y: 45 }, { id: 'DATA', x: 15, y: 45 }, { id: 'NC', x: 25, y: 45 }, { id: 'GND', x: 35, y: 45 }
+        ]
+    },
+    'dht22': {
+        width: 40, height: 50,
+        pins: [
+            { id: 'VCC', x: 5, y: 45 }, { id: 'DATA', x: 15, y: 45 }, { id: 'NC', x: 25, y: 45 }, { id: 'GND', x: 35, y: 45 }
+        ]
+    },
+    'mpu': {
+        width: 60, height: 50,
+        pins: [
+            { id: 'VCC', x: 5, y: 45 }, { id: 'GND', x: 13, y: 45 }, { id: 'SCL', x: 21, y: 45 }, { id: 'SDA', x: 29, y: 45 },
+            { id: 'XDA', x: 37, y: 45 }, { id: 'XCL', x: 45, y: 45 }, { id: 'AD0', x: 53, y: 45 }, { id: 'INT', x: 61, y: 45 }
+        ]
     }
 };
 
 // Pin Layout Generatort
 function getPinLayout(compDef) {
-    // 1. Explicit Custom Layouts (MCUs)
+    // 1. Explicit Custom Layouts
     if (pinLayouts[compDef.id]) return pinLayouts[compDef.id];
 
     // 2. Transistors (3-Pin)
@@ -390,9 +472,27 @@ function getPinLayout(compDef) {
         };
     }
 
-    // 3. Sensors/Modules (3-Pin or 4-Pin) usually bottom row
-    if (compDef.type === 'sensor' && !compDef.custom) {
-        // Generic 3-pin Sensor
+    // 3. Ground (Single Pin)
+    if (compDef.id === 'gnd') {
+        return {
+            width: 60, height: 40,
+            pins: [{ id: 'GND', x: 30, y: 5 }]
+        };
+    }
+
+    // 4. Sensors/Modules (Generic 3 or 4 pin)
+    if (compDef.type === 'sensor' || compDef.type === 'mcu' || compDef.type === 'rf' || compDef.type === 'output') {
+        // I2C or typical 4-pin
+        if (['bmp180', 'bme280', 'tsl', 'bh17', 'sht31', 'max98', 'vl53', 'atsha', 'max3014'].includes(compDef.id)) {
+            return {
+                width: 60, height: 50,
+                pins: [
+                    { id: 'VCC', x: 10, y: 45 }, { id: 'GND', x: 25, y: 45 },
+                    { id: 'SCL', x: 40, y: 45 }, { id: 'SDA', x: 55, y: 45 }
+                ]
+            };
+        }
+        // Generic 3-pin
         return {
             width: 60, height: 50,
             pins: [
@@ -403,7 +503,7 @@ function getPinLayout(compDef) {
         };
     }
 
-    // 4. ICs (Logic Gates - 2 In, 1 Out)
+    // 5. Logic Gates (2 In, 1 Out)
     if (['nand', 'nor', 'xor'].includes(compDef.id)) {
         return {
             width: 60, height: 40,
@@ -415,8 +515,7 @@ function getPinLayout(compDef) {
         };
     }
 
-    // 5. Standard 2-Pin (Res, Cap, LED, etc.)
-    // We map them to specific coordinates instead of CSS classes
+    // 6. Standard 2-Pin (Res, Cap, LED, Bat, etc.)
     return {
         width: 60, height: 40,
         pins: [
@@ -1055,7 +1154,6 @@ function addComponentToCanvas(compDef, x, y) {
 
     el.innerHTML = `
         ${nodesHTML}
-        // Scale SVG to fit
         <svg class="comp-svg" width="${compData.width}" height="${compData.height}" 
              viewBox="0 0 ${compData.width} ${compData.height}" preserveAspectRatio="none">${svgPath}</svg>
         <div class="comp-label" style="top: ${compData.height + 2}px"><span class="name">${compData.name}</span><span class="val-badge">${compData.value}${compData.unit}</span></div>`;
@@ -1331,28 +1429,55 @@ function solveCircuit() {
 
         // -- Stamp Linear Components --
         circuitComponents.forEach(comp => {
-            const n1 = getNetId(comp.id, 'L');
-            const n2 = getNetId(comp.id, 'R');
-            if (n1 === -1 || n2 === -1) return;
+            // Helper: Stamp simple resistor between two nodes
+            const stampResistor = (nA, nB, r) => {
+                if (nA === -1 || nB === -1) return;
+                const g = 1 / Math.max(r, 0.001);
+                G[nA][nA] += g; G[nB][nB] += g; G[nA][nB] -= g; G[nB][nA] -= g;
+            };
 
-            // Resistors
-            if (['res', 'pot', 'trim', 'nth'].includes(comp.defId)) {
+            // Resistors (Standard 2-pin)
+            if (['res', 'ind', 'led', 'dio', 'zen', 'sch', 'sw', 'nth'].includes(comp.defId)) {
+                const n1 = getNetId(comp.id, 'L');
+                const n2 = getNetId(comp.id, 'R');
                 let r = parseFloat(comp.value) || 1000;
                 if (comp.unit === 'kΩ') r *= 1000;
-                if (comp.unit === 'mΩ') r *= 0.001;
-                if (r < 0.001) r = 0.001;
-                const g = 1 / r;
-                G[n1][n1] += g; G[n2][n2] += g; G[n1][n2] -= g; G[n2][n1] -= g;
+                if (comp.unit === 'MΩ') r *= 1000000;
+
+                if (comp.defId === 'res' || comp.defId === 'nth') stampResistor(n1, n2, r);
+                else if (comp.defId === 'sw') {
+                    const isOpen = comp.value === 0; // Switch logic
+                    stampResistor(n1, n2, isOpen ? 1e9 : 0.001);
+                }
+                else if (comp.defId === 'ind') stampResistor(n1, n2, 0.001); // Ideal Inductor (DC)
+            }
+
+            // Potentiometers / Trimpots (3-pin)
+            if (['pot', 'trim'].includes(comp.defId)) {
+                const n1 = getNetId(comp.id, '1');
+                const n2 = getNetId(comp.id, '2'); // Wiper
+                const n3 = getNetId(comp.id, '3');
+
+                let totalR = parseFloat(comp.value) || 10000;
+                if (comp.unit === 'kΩ') totalR *= 1000;
+
+                // Assume value (0-100) is percentage of rotation
+                // If value is not percentage, let's treat it as resistance (but we need percentage for wiper)
+                // Let's assume for now value is 0-10,000 for a 10k pot, etc. 
+                // Or maybe the user edits 'value' to be the resistance at the wiper?
+                // Standard UI usually uses 'value' as the max resistance.
+                // For simulation, let's assume a default wiper at 50% if not specified.
+                const percent = 0.5;
+                stampResistor(n1, n2, totalR * percent);
+                stampResistor(n2, n3, totalR * (1 - percent));
             }
 
             // Ideal Meters
             if (comp.defId === 'v_meter') {
-                const g = 1e-9; // Very Low Conductance (1G Ohm)
-                G[n1][n1] += g; G[n2][n2] += g; G[n1][n2] -= g; G[n2][n1] -= g;
+                stampResistor(getNetId(comp.id, 'L'), getNetId(comp.id, 'R'), 1e9);
             }
             if (comp.defId === 'a_meter') {
-                const g = 1000; // 0.001 Ohm
-                G[n1][n1] += g; G[n2][n2] += g; G[n1][n2] -= g; G[n2][n1] -= g;
+                stampResistor(getNetId(comp.id, 'L'), getNetId(comp.id, 'R'), 0.001);
             }
         });
 
@@ -1362,7 +1487,6 @@ function solveCircuit() {
             let v = parseFloat(comp.value) || 9;
             if (comp.unit === 'mV') v *= 0.001;
 
-            // Corrected Polarity: Left (Long Bar) is Positive, Right (Short Bar) is Negative
             const nPos = getNetId(comp.id, 'L');
             const nNeg = getNetId(comp.id, 'R');
 
@@ -1400,70 +1524,65 @@ function solveCircuit() {
         */
 
         circuitComponents.forEach(comp => {
-            if (!['led', 'dio', 'zen', 'sch'].includes(comp.defId)) return;
+            // Diodes/LEDs
+            if (['led', 'dio', 'zen', 'sch'].includes(comp.defId)) {
+                const nA = getNetId(comp.id, 'L');
+                const nC = getNetId(comp.id, 'R');
+                if (nA === -1 || nC === -1) return;
 
-            const nA = getNetId(comp.id, 'L'); // Anode (Left?) - Wait, icons suggest Triangle points right aka L inputs, R outputs?
-            // Standard schematic: Current flows Left to Right usually.
-            // Let's assume Left=Anode, Right=Cathode for standard icons.
-            const nC = getNetId(comp.id, 'R');
+                const vDiff = (solution[nA] || 0) - (solution[nC] || 0);
+                let vFwd = 0.7, vRev = 0;
+                if (comp.defId === 'led') vFwd = 2.0;
+                if (comp.defId === 'sch') vFwd = 0.3;
+                if (comp.defId === 'zen') vRev = parseFloat(comp.value) || 5.1;
 
-            if (nA === -1 || nC === -1) return;
+                let activeG = 1e-9, activeVcorr = 0;
+                if (vDiff > vFwd) { activeG = 10; activeVcorr = vFwd; }
+                else if (vRev > 0 && (solution[nC] - solution[nA]) > vRev) { activeG = 10; activeVcorr = -vRev; }
 
-            // Get current estimates
-            const vA = solution[nA] || 0;
-            const vC = solution[nC] || 0;
-            const vDiff = vA - vC;
-
-            // Parameters
-            let vFwd = 0.7; // Standard Diode/Zener Fwd
-            let vRev = 0;   // Breakdown voltage (Positive Value)
-
-            if (comp.defId === 'led') vFwd = 2.0;
-            if (comp.defId === 'sch') vFwd = 0.3;
-            if (comp.defId === 'zen') vRev = parseFloat(comp.value) || 5.1; // Zener Value
-
-            const gOff = 1e-9;
-            const gOn = 10; // 0.1 Ohm ON resistance
-
-            // Logic
-            let activeG = gOff;
-            let activeVcorr = 0; // The battery part of the model
-
-            // Check Forward Bias
-            if (vDiff > vFwd) {
-                activeG = gOn;
-                activeVcorr = vFwd; // Opposes current from A to C
-                // Current I = (Vdiff - Vfwd) * Gon
-            }
-            // Check Reverse Bias (Zener Breakdown)
-            else if (vRev > 0 && (vC - vA) > vRev) {
-                // Breakdown! Current flows Cathode -> Anode
-                // Modeled as Source Vrev opposing C->A current
-                activeG = gOn;
-                activeVcorr = -vRev; // Negative because it's opposing the reverse potential? 
-
-                // Let's derive again:
-                // We want Vc - Va = Vrev  => Va - Vc = -Vrev
-                // I_c_to_a = (Vc - Va - Vrev) * Gon
-                // I_leaving_anode (entering diode from left) = - I_c_to_a
-                // = - (Vc - Va - Vrev) * Gon
-                // = (Va - Vc + Vrev) * Gon
-                // = (Va - Vc)*Gon + Vrev*Gon
-                // Anode Row: ... + (Va-Vc)G ... = - Vrev*Gon
-                // So activeVcorr = -Vrev.
+                G[nA][nA] += activeG; G[nC][nC] += activeG; G[nA][nC] -= activeG; G[nC][nA] -= activeG;
+                I[nA] += activeVcorr * activeG; I[nC] -= activeVcorr * activeG;
             }
 
-            // Apply G
-            G[nA][nA] += activeG; G[nC][nC] += activeG;
-            G[nA][nC] -= activeG; G[nC][nA] -= activeG;
+            // BJT Transistors (Simplified Adaptive Model)
+            if (['bjt', 'pnp'].includes(comp.defId)) {
+                const nC = getNetId(comp.id, 'C');
+                const nB = getNetId(comp.id, 'B');
+                const nE = getNetId(comp.id, 'E');
+                if (nC === -1 || nB === -1 || nE === -1) return;
 
-            // Apply Current Correction (RHS)
-            if (activeVcorr !== 0) {
-                const currentInj = activeVcorr * activeG;
-                // Anode Row RHS: += currentInj
-                I[nA] += currentInj;
-                // Cathode Row RHS: -= currentInj
-                I[nC] -= currentInj;
+                const isNPN = comp.defId === 'bjt';
+                const vBE = isNPN ? (solution[nB] - solution[nE]) : (solution[nE] - solution[nB]);
+                const beta = parseFloat(comp.value) || 100;
+
+                // Simple Switch-like BJT logic
+                if (vBE > 0.6) {
+                    const gCE = beta * 0.1; // Saturated conductance approx
+                    G[nC][nC] += gCE; G[nE][nE] += gCE; G[nC][nE] -= gCE; G[nE][nC] -= gCE;
+                    // Base current approx
+                    const gBE = 0.1;
+                    G[nB][nB] += gBE; G[nE][nE] += gBE; G[nB][nE] -= gBE; G[nE][nB] -= gBE;
+                    I[nB] += 0.6 * gBE; I[nE] -= 0.6 * gBE;
+                }
+            }
+
+            // Logic Gates (NAND, NOR, XOR)
+            if (['nand', 'nor', 'xor'].includes(comp.defId)) {
+                const nA = getNetId(comp.id, 'A');
+                const nB = getNetId(comp.id, 'B');
+                const nQ = getNetId(comp.id, 'Q');
+                if (nA === -1 || nB === -1 || nQ === -1) return;
+
+                const vA = (solution[nA] || 0) > 2.5;
+                const vB = (solution[nB] || 0) > 2.5;
+                let outHigh = false;
+                if (comp.defId === 'nand') outHigh = !(vA && vB);
+                if (comp.defId === 'nor') outHigh = !(vA || vB);
+                if (comp.defId === 'xor') outHigh = (vA !== vB);
+
+                const gOut = 10; // Low impedance output
+                G[nQ][nQ] += gOut;
+                I[nQ] += (outHigh ? 5 : 0) * gOut;
             }
         });
 
